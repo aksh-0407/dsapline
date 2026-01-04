@@ -1,5 +1,6 @@
 import { getFile, saveFile } from "./github";
 import { IndexEntry, IndexEntrySchema, UserSchema } from "./types";
+import { currentUser } from "@clerk/nextjs/server"; //
 
 const INDEX_PATH = "data/index.json"; 
 const MAX_RETRIES = 5;
@@ -43,12 +44,24 @@ export async function safeUpdateIndex(newEntry: IndexEntry) {
 
 /**
  * 2. SAFE USER STATS UPDATE (ID-BASED)
- * Uses userId as the filename for privacy.
+ * - Uses userId as the filename for privacy.
+ * - NOW FETCHES FULL NAME FROM CLERK
  */
-export async function safeUpdateUserStats(userId: string, username: string, dateStr: string) {
+export async function safeUpdateUserStats(userId: string, usernameFallback: string, dateStr: string) {
   let attempts = 0;
-  // CRITICAL CHANGE: File is now named by ID, not Name
   const userPath = `data/users/${userId}.json`;
+
+  // Fetch current user from Clerk to ensure we have the latest Name
+  const clerkUser = await currentUser();
+  
+  // Construct Full Name (First + Last) or fall back to the passed username
+  let finalName = usernameFallback;
+  let avatarUrl = "";
+  
+  if (clerkUser && clerkUser.id === userId) {
+    finalName = `${clerkUser.firstName} ${clerkUser.lastName || ''}`.trim();
+    avatarUrl = clerkUser.imageUrl;
+  }
 
   while (attempts < MAX_RETRIES) {
     try {
@@ -57,8 +70,9 @@ export async function safeUpdateUserStats(userId: string, username: string, date
       // Default Profile
       let profile = {
         userId: userId,
-        username: username,
+        username: finalName, // <--- Using Full Name
         joinDate: new Date().toISOString(),
+        avatar: avatarUrl,   // <--- Saving Avatar
         stats: { totalSolved: 0, currentStreak: 0, datesSolved: [] as string[], debt: 0 }
       };
 
@@ -66,8 +80,8 @@ export async function safeUpdateUserStats(userId: string, username: string, date
         profile = {
           ...profile,
           ...content,
-          // Update username in case they changed it in Clerk, but keep stats
-          username: username, 
+          username: finalName, // <--- Always update name to match Clerk
+          avatar: avatarUrl || content.avatar,
           stats: { ...profile.stats, ...(content.stats || {}) }
         };
       }
@@ -79,7 +93,7 @@ export async function safeUpdateUserStats(userId: string, username: string, date
       }
       profile.stats.totalSolved += 1;
 
-      await saveFile(userPath, profile, sha, `Update stats for ${username}`);
+      await saveFile(userPath, profile, sha, `Update stats for ${finalName}`);
       return; 
 
     } catch (error: any) {
@@ -106,6 +120,54 @@ export async function getUserProfile(userId: string) {
   
   // Optional: You can validate it matches the schema if you want strictness
   return UserSchema.parse(content); 
+}
+
+/**
+ * 4. GET OR CREATE USER (SYNC HELPER)
+ * Call this on profile pages to ensure the user file exists and has the latest name
+ */
+export async function getOrCreateUser() {
+  const user = await currentUser();
+  if (!user) return null;
+
+  const fullName = `${user.firstName} ${user.lastName || ''}`.trim();
+  const userId = user.id;
+  const userPath = `data/users/${userId}.json`;
+
+  try {
+    const { content, exists, sha } = await getFile(userPath);
+
+    if (exists && content) {
+      // If name/avatar changed in Clerk, update the DB file
+      if (content.username !== fullName || content.avatar !== user.imageUrl) {
+        const updatedProfile = { 
+          ...content, 
+          username: fullName, 
+          avatar: user.imageUrl 
+        };
+        // Fire and forget save (don't await strictly if you want speed)
+        await saveFile(userPath, updatedProfile, sha, `Sync profile for ${fullName}`);
+        return updatedProfile;
+      }
+      return content;
+    } else {
+      // Create New
+      const newProfile = {
+        userId: userId,
+        username: fullName,
+        email: user.emailAddresses[0].emailAddress,
+        avatar: user.imageUrl,
+        joinDate: new Date().toISOString(),
+        stats: { totalSolved: 0, currentStreak: 0, datesSolved: [], debt: 0 },
+        submissions: []
+      };
+      await saveFile(userPath, newProfile, undefined, `Create user ${fullName}`);
+      return newProfile;
+    }
+  } catch (err) {
+    console.error("Error syncing user:", err);
+    return null;
+  }
 }
 
 export async function getGlobalTags(): Promise<string[]> {

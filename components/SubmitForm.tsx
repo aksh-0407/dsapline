@@ -390,7 +390,7 @@ export function SubmitForm() {
           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-bold hover:from-blue-500 hover:to-blue-600 transition-all shadow-lg shadow-blue-900/20 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
-             <span className="flex items-center gap-2"><Loader2 className="animate-spin" /> Saving to GitHub...</span>
+             <span className="flex items-center gap-2"><Loader2 className="animate-spin" /> Submitting Problem ...</span>
           ) : (
              <>
                <span>Confirm Submission</span>

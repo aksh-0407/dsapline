@@ -91,9 +91,10 @@ export function LeaderboardClient({ data, currentUserId }: Props) {
                       {entry.username} {isMe && "(You)"}
                     </Link>
                   </div>
+                  
+                  {/* UPDATED SECTION BELOW */}
                   <div className="text-xs md:text-sm text-gray-500 flex items-center gap-2 mt-1">
-                    <span className="capitalize hidden md:inline">{entry.favoritePlatform} Specialist</span>
-                    <span className="hidden md:inline">•</span>
+                    {/* Deleted the 'Specialist' span and the '•' span */}
                     <span>Last active {entry.lastActive}</span>
                   </div>
                 </div>
