@@ -1,14 +1,14 @@
-# DSAPline
+# DSApline
 
 **Master Algorithms through Radical Accountability.**
 
-DSAPline is a platform designed for competitive programmers to track, visualize, and archive their coding journey across platforms like LeetCode, Codeforces, and HackerRank. It emphasizes consistency through streaks, deep analytics, and a public portfolio of source code.
+DSApline is a platform designed for competitive programmers to track, visualize, and archive their coding journey across platforms like LeetCode, Codeforces, and HackerRank. It emphasizes consistency through streaks, deep analytics, and a public portfolio of source code.
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## Overview
 
-This project provides a centralized dashboard for tracking competitive programming progress. Unlike standard tracking tools, DSAPline integrates directly with GitHub, ensuring that every submission contributes to a personal, version-controlled code archive.
+This project provides a centralized dashboard for tracking competitive programming progress. Unlike standard tracking tools, DSApline integrates directly with GitHub, ensuring that every submission contributes to a personal, version-controlled code archive.
 
 ## Key Features
 
@@ -20,7 +20,7 @@ This project provides a centralized dashboard for tracking competitive programmi
 
 ## Architecture
 
-DSAPline uses a "Repository as Database" architecture. The application does not rely on a traditional SQL or NoSQL database for persistence.
+DSApline uses a "Repository as Database" architecture. The application does not rely on a traditional SQL or NoSQL database for persistence.
 
 1.  **Submission:** When a user logs a solution, the application uses the GitHub API to commit a JSON metadata file and the source code file (e.g., `.cpp`, `.py`) into the `data/submissions` directory.
 2.  **Indexing:** A global index (`data/index.json`) is updated automatically to ensure O(1) retrieval times for lists and search operations.
@@ -47,8 +47,8 @@ DSAPline uses a "Repository as Database" architecture. The application does not 
 
 1.  **Clone the repository**
     ```bash
-    git clone [https://github.com/aksh-0407/dsapline.git](https://github.com/aksh-0407/dsapline.git)
-    cd dsapline
+    git clone [https://github.com/aksh-0407/DSApline.git](https://github.com/aksh-0407/DSApline.git)
+    cd DSApline
     ```
 
 2.  **Install dependencies**
