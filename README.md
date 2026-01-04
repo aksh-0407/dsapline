@@ -1,46 +1,45 @@
-# ⚡ DSAPline
+# DSAPline
 
-> **Master Algorithms through Radical Accountability.**
+**Master Algorithms through Radical Accountability.**
 
-DSAPline is a platform designed for competitive programmers to track, visualize, and archive their coding journey across platforms like LeetCode, Codeforces, and HackerRank. It emphasizes consistency through streaks, deep analytics, and a public portfolio of your code.
+DSAPline is a platform designed for competitive programmers to track, visualize, and archive their coding journey across platforms like LeetCode, Codeforces, and HackerRank. It emphasizes consistency through streaks, deep analytics, and a public portfolio of source code.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Stack](https://img.shields.io/badge/built%20with-Next.js_15-black)
 
-## 🚀 Features
+## Overview
 
--   **Unified Portfolio:** Bring all your solutions from LeetCode, Codeforces, and others under one roof.
--   **Deep Analytics:** Visualise difficulty distribution, track active days, and monitor your consistency with a GitHub-style heatmap.
--   **Code Archive:** A searchable, filterable repository of every problem you've ever solved. Never lose a solution again.
--   **Hall of Fame:** A competitive leaderboard ranking "Whizzes" by problems solved and highest active streaks.
--   **Serverless Architecture:** A unique zero-database approach where all data is stored as JSON and source code files directly in the repository via the GitHub API.
+This project provides a centralized dashboard for tracking competitive programming progress. Unlike standard tracking tools, DSAPline integrates directly with GitHub, ensuring that every submission contributes to a personal, version-controlled code archive.
 
-## 🛠️ Tech Stack
+## Key Features
+
+-   **Unified Portfolio:** Aggregates solutions from LeetCode, Codeforces, and HackerRank into a single interface.
+-   **Deep Analytics:** Visualizes difficulty distribution, tracks active days, and calculates consistency metrics using a contribution graph.
+-   **Code Archive:** A searchable repository of all past solutions, filterable by tag, difficulty, and platform.
+-   **Leaderboard:** A ranking system based on total problems solved and current active streaks.
+-   **Serverless Architecture:** Utilizes a zero-database approach where data is stored as JSON and source code files directly within the repository via the GitHub API.
+
+## Architecture
+
+DSAPline uses a "Repository as Database" architecture. The application does not rely on a traditional SQL or NoSQL database for persistence.
+
+1.  **Submission:** When a user logs a solution, the application uses the GitHub API to commit a JSON metadata file and the source code file (e.g., `.cpp`, `.py`) into the `data/submissions` directory.
+2.  **Indexing:** A global index (`data/index.json`) is updated automatically to ensure O(1) retrieval times for lists and search operations.
+3.  **Retrieval:** Next.js fetches this data at build or request time to render static pages with dynamic updates.
+
+## Tech Stack
 
 -   **Framework:** Next.js 15 (App Router)
 -   **Language:** TypeScript
--   **Styling:** Tailwind CSS
 -   **Authentication:** Clerk
+-   **Styling:** Tailwind CSS
 -   **Icons:** Lucide React
--   **Database:** GitHub API (File-System based)
--   **Deployment:** Vercel
+-   **Storage:** GitHub API
 
-## 🏗️ Architecture: "The Repo is the Database"
-
-DSAPline uses a novel architecture where **GitHub itself acts as the database**.
-When a user submits a solution:
-1.  The app uses the GitHub API to commit a JSON metadata file and the code file (e.g., `.cpp`, `.py`) into the `data/submissions` folder.
-2.  The global index (`data/index.json`) is updated automatically.
-3.  Next.js fetches this data at build/request time to render static pages with dynamic updates.
-
-This ensures your data is portable, version-controlled, and belongs 100% to you.
-
-## 🏁 Getting Started
+## Getting Started
 
 ### Prerequisites
 
--   Node.js 18+
+-   Node.js 18.0.0 or later
 -   A GitHub Account (for the Personal Access Token)
 -   A Clerk Account (for Authentication)
 
@@ -58,47 +57,38 @@ This ensures your data is portable, version-controlled, and belongs 100% to you.
     ```
 
 3.  **Configure Environment Variables**
-    Create a `.env.local` file in the root directory:
+    Create a `.env.local` file in the root directory and add the following keys:
     ```env
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
     CLERK_SECRET_KEY=sk_test_...
     GITHUB_TOKEN=ghp_...
     ```
-    *Note: The `GITHUB_TOKEN` requires `repo` scope permissions.*
+    *Note: The `GITHUB_TOKEN` requires `repo` scope permissions to read/write data.*
 
 4.  **Run the development server**
     ```bash
     npm run dev
     ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+    The application will be available at [http://localhost:3000](http://localhost:3000).
 
-## 📂 Project Structure
-dsapline/ ├── app/ # Next.js App Router pages ├── components/ # Reusable UI components (Heatmap, StatsGrid, etc.) ├── lib/ # Core logic (Analytics, GitHub API wrappers) ├── data/ # THE DATABASE (Do not touch manually) │ ├── submissions/ # Stores code and metadata JSONs │ └── index.json # Master index for fast lookups └── public/ # Static assets
+## Project Structure
 
-## 🚀 Deployment
+-   `app/` - Next.js App Router pages and API routes.
+-   `components/` - Reusable UI components.
+-   `lib/` - Core business logic, analytics engines, and GitHub API wrappers.
+-   `data/` - The storage directory for submissions and indices.
+-   `public/` - Static assets.
 
-This project is optimized for **Vercel**.
+## Deployment
 
-1.  Push your code to GitHub.
-2.  Import the project in Vercel.
-3.  Add the Environment Variables (`CLERK_KEY`, `GITHUB_TOKEN`, etc.) in the Vercel Dashboard.
-4.  Deploy!
+This project is optimized for deployment on Vercel.
 
-## 🤝 Contributing
+1.  Push the repository to GitHub.
+2.  Import the project into Vercel.
+3.  Configure the environment variables (`CLERK_SECRET_KEY`, `GITHUB_TOKEN`, etc.) in the Vercel project settings.
+4.  Deploy.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## License
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
-
-## 📄 License
-
-Distributed under the MIT License.
-
----
-
-> Built with 💻 and ☕ by **Aksh**.
+This project is licensed under the MIT License.
