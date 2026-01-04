@@ -1,0 +1,26 @@
+{
+  "id": "ffb4f1b4-5573-426d-ad88-c64afba7b9dc",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/two-sum/",
+    "title": "1. Two Sum"
+  },
+  "difficulty": 2.5,
+  "tags": [
+    "Array",
+    "Hash Table"
+  ],
+  "notes": "Using HashMaps",
+  "timestamp": "2026-01-04T08:08:33.634Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-04_1TwoSum_Aksh_ffb4f1b4-5573-426d-ad88-c64afba7b9dc.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "1. Two Sum",
+    "difficultyLabel": "Easy"
+  }
+}
