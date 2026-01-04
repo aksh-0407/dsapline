@@ -1,0 +1,25 @@
+{
+  "id": "a2a4f529-db26-45b9-a6be-2baa2fb2e94e",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/palindrome-number/",
+    "title": "9. Palindrome Number"
+  },
+  "difficulty": 3,
+  "tags": [
+    "Math"
+  ],
+  "notes": "",
+  "timestamp": "2026-01-04T09:21:56.347Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-04_9PalindromeNumber_Aksh_a2a4f529-db26-45b9-a6be-2baa2fb2e94e.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "9. Palindrome Number",
+    "difficultyLabel": "Easy"
+  }
+}
