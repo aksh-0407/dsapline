@@ -12,7 +12,8 @@ import { usePathname } from "next/navigation";
 import { Code2, LayoutDashboard, Trophy, Archive, PlusCircle, Menu, X } from "lucide-react";
 import { useState } from "react";
 
-export default function Navbar() {
+// FIXED: Using "export function" instead of "export default" to match layout.tsx
+export function Navbar() {
   const pathname = usePathname();
   const { user, isLoaded } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
