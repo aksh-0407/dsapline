@@ -1,0 +1,28 @@
+{
+  "id": "533b0ff3-b1f4-4a19-955a-3486b58e7c61",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/integer-to-roman/",
+    "title": "12. Integer to Roman"
+  },
+  "difficulty": 4,
+  "tags": [
+    "Hash Table",
+    "Math",
+    "String",
+    "Switch Case"
+  ],
+  "notes": "[ Time taken: 14 m 31 s ]\r\nUsed switch_case + string.push_back\r\nPoor Time Complexity\r\nGood Memory Management",
+  "timestamp": "2026-01-05T18:14:27.556Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-05_12IntegertoRoman_Aksh_533b0ff3-b1f4-4a19-955a-3486b58e7c61.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "12. Integer to Roman",
+    "difficultyLabel": "Medium"
+  }
+}
