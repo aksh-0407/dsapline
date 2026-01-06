@@ -1,5 +1,22 @@
 [
   {
+    "id": "42128d52-b122-48b3-acd2-f1d84179d64c",
+    "title": "67. Add Binary",
+    "difficulty": 4,
+    "tags": [
+      "Math",
+      "String",
+      "Bit Manipulation",
+      "Simulation"
+    ],
+    "username": "Aksh",
+    "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+    "date": "2026-01-06",
+    "timestamp": "2026-01-06T05:40:58.124Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Easy"
+  },
+  {
     "id": "533b0ff3-b1f4-4a19-955a-3486b58e7c61",
     "title": "12. Integer to Roman",
     "difficulty": 4,
