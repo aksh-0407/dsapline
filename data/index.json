@@ -1,5 +1,24 @@
 [
   {
+    "id": "f67d155f-ae8d-425d-9043-27bef191447b",
+    "title": "1966. Frequency of the Most Frequent Element",
+    "difficulty": 6,
+    "tags": [
+      "Array",
+      "Binary Search",
+      "Greedy",
+      "Sliding Window",
+      "Sorting",
+      "Prefix Sum"
+    ],
+    "username": "Malhar",
+    "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+    "date": "2026-01-08",
+    "timestamp": "2026-01-08T05:15:40.371Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "42128d52-b122-48b3-acd2-f1d84179d64c",
     "title": "67. Add Binary",
     "difficulty": 4,
