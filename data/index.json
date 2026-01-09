@@ -1,5 +1,21 @@
 [
   {
+    "id": "8174f491-9dea-49d9-864d-49d1ae4ed5e1",
+    "title": "74. Search a 2D Matrix",
+    "difficulty": 6,
+    "tags": [
+      "Array",
+      "Binary Search",
+      "Matrix"
+    ],
+    "username": "Malhar",
+    "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+    "date": "2026-01-09",
+    "timestamp": "2026-01-09T09:12:53.062Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "f67d155f-ae8d-425d-9043-27bef191447b",
     "title": "1966. Frequency of the Most Frequent Element",
     "difficulty": 6,
