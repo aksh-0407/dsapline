@@ -1,0 +1,30 @@
+{
+  "id": "61e852b2-1e08-456f-8839-d6b9e8f9b399",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/valid-parentheses/submissions/1879499226/",
+    "title": "20. Valid Parentheses"
+  },
+  "difficulty": 5.5,
+  "tags": [
+    "String",
+    "Stack"
+  ],
+  "notes": "First attaempt with Recursion; Worst way to solve most qs. So, converted recursion to linear accumulator using while loop. Still very inefficient way to solve this question.\r\n\r\nBest way is to use the C++ structure called Stack. It is better since - \r\n1. Time Complexity: O(N) vs O(N^2). \r\nStack Method: O(N) - This code looks at every character exactly one time. It pushes or pops from the stack. Both are instantaneous O(1) operations.\r\n2. Problem is about Last IN, First out, which matches stack definition. The last item you put on top (push) is the first one you take off (pop). \r\n",
+  "timestamp": "2026-01-09T22:11:14.734Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-09_20ValidParentheses_Aksh_61e852b2-1e08-456f-8839-d6b9e8f9b399.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": {
+    "label": "Optimum solution once stack is known",
+    "path": "data/submissions/2026/01/2026-01-09_20ValidParentheses_Aksh_61e852b2-1e08-456f-8839-d6b9e8f9b399_alt.txt",
+    "extension": "txt"
+  },
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "20. Valid Parentheses",
+    "difficultyLabel": "Easy"
+  }
+}
