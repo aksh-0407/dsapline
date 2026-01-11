@@ -1,0 +1,31 @@
+{
+  "id": "643a32d3-ab59-4e2a-b3a7-f5c52f06ede0",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/contains-duplicate/description/",
+    "title": "217. Contains Duplicate"
+  },
+  "difficulty": 0.5,
+  "tags": [
+    "Array",
+    "Hash Table",
+    "Sorting"
+  ],
+  "notes": "Multiple ways to solve this:\r\n1. Brute Force - Nested for loops. TC = O(n^2). SC =  O(1)\r\n2. Sorting. TC = O(n.logn). SC = O(1) / O(n) as per the sorting algorithm.\r\n3. Hash Set - Add every unseen element to hash set, if an element already exists, return true.\r\n4. Hash Set Length (BEST) - Initialize hash set with all given elements and compare sizes.\r\nTC, SC both O(n) for both hash methods.\r\n",
+  "timestamp": "2026-01-11T18:27:34.295Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-11_217ContainsDuplicate_Aksh_643a32d3-ab59-4e2a-b3a7-f5c52f06ede0.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": {
+    "label": "Using sorting",
+    "path": "data/submissions/2026/01/2026-01-11_217ContainsDuplicate_Aksh_643a32d3-ab59-4e2a-b3a7-f5c52f06ede0_alt.txt",
+    "extension": "txt"
+  },
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "217. Contains Duplicate",
+    "difficultyLabel": "Easy"
+  }
+}
