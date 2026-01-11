@@ -1,0 +1,33 @@
+{
+  "id": "ae0a35f8-0eba-4f83-a34a-de3e0c3875e9",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/valid-anagram/description/",
+    "title": "242. Valid Anagram"
+  },
+  "difficulty": 1.5,
+  "tags": [
+    "Hash Table",
+    "String",
+    "Sorting",
+    "Unordered Map",
+    "Bucket Method"
+  ],
+  "notes": "Analysis: https://neetcode.io/problems/is-anagram/solution\r\nUsing unordered maps, bucketing methods\r\nFor a string, .size()  and .length() have the exact same functionality. Thus, identical in meaning & performance.\r\n\r\n\r\n",
+  "timestamp": "2026-01-11T19:29:46.446Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-11_242ValidAnagram_Aksh_ae0a35f8-0eba-4f83-a34a-de3e0c3875e9.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": {
+    "label": "Using Unordered Map",
+    "path": "data/submissions/2026/01/2026-01-11_242ValidAnagram_Aksh_ae0a35f8-0eba-4f83-a34a-de3e0c3875e9_alt.txt",
+    "extension": "txt"
+  },
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "242. Valid Anagram",
+    "difficultyLabel": "Easy"
+  }
+}
