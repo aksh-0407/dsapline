@@ -1,5 +1,23 @@
 [
   {
+    "id": "ae0a35f8-0eba-4f83-a34a-de3e0c3875e9",
+    "title": "242. Valid Anagram",
+    "difficulty": 1.5,
+    "tags": [
+      "Hash Table",
+      "String",
+      "Sorting",
+      "Unordered Map",
+      "Bucket Method"
+    ],
+    "username": "Aksh",
+    "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+    "date": "2026-01-11",
+    "timestamp": "2026-01-11T19:29:46.446Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Easy"
+  },
+  {
     "id": "643a32d3-ab59-4e2a-b3a7-f5c52f06ede0",
     "title": "217. Contains Duplicate",
     "difficulty": 0.5,
