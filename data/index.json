@@ -1,5 +1,21 @@
 [
   {
+    "id": "643a32d3-ab59-4e2a-b3a7-f5c52f06ede0",
+    "title": "217. Contains Duplicate",
+    "difficulty": 0.5,
+    "tags": [
+      "Array",
+      "Hash Table",
+      "Sorting"
+    ],
+    "username": "Aksh",
+    "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+    "date": "2026-01-11",
+    "timestamp": "2026-01-11T18:27:34.295Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Easy"
+  },
+  {
     "id": "75fcb971-c5f1-433a-8d52-1586fd54acc8",
     "title": "2058. Concatenation of Array",
     "difficulty": 0.5,
