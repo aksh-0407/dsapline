@@ -1,0 +1,30 @@
+{
+  "id": "75fcb971-c5f1-433a-8d52-1586fd54acc8",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/concatenation-of-array/description/",
+    "title": "2058. Concatenation of Array"
+  },
+  "difficulty": 0.5,
+  "tags": [
+    "Array",
+    "Simulation"
+  ],
+  "notes": "First application of short int",
+  "timestamp": "2026-01-11T18:08:53.798Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-11_2058ConcatenationofArray_Aksh_75fcb971-c5f1-433a-8d52-1586fd54acc8.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": {
+    "label": "Previous but somehow more optimised solution",
+    "path": "data/submissions/2026/01/2026-01-11_2058ConcatenationofArray_Aksh_75fcb971-c5f1-433a-8d52-1586fd54acc8_alt.txt",
+    "extension": "txt"
+  },
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "2058. Concatenation of Array",
+    "difficultyLabel": "Easy"
+  }
+}
