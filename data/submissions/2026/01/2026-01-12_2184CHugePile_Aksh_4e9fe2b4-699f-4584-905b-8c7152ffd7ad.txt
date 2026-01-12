@@ -1,0 +1,34 @@
+void solve()
+{
+    ll n, k;
+    cin >> n >> k;
+
+    if (n == k) {cout << 0 << endl; return;}
+    if (n < k) {cout << -1 << endl; return;}
+
+    unordered_set<int> s;
+    s.insert(n);
+    int t = 0;
+
+    while (!s.empty()) {
+        unordered_set<long long> next_s;
+        t++; 
+        
+        for (ll i : s) {
+            ll h1 = i/2;
+            ll h2 = (i+1)/2;
+
+            if (h1 == k || h2 == k) {
+                cout << t << endl;
+                return;
+            }
+            if (h1 > k) next_s.insert(h1);
+            if (h2 > k) next_s.insert(h2);
+        }
+
+        s = next_s;
+    }
+
+    cout << -1 <<endl;
+    return;     
+}
