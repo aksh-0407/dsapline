@@ -1,0 +1,26 @@
+{
+  "id": "83aa5ce7-4550-478d-9c70-1a4cef1b954f",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://leetcode.com/problems/rotate-string/",
+    "title": "812. Rotate String"
+  },
+  "difficulty": 3,
+  "tags": [
+    "String",
+    "String Matching"
+  ],
+  "notes": "Create new string concatenating the given string with itself so that all possible shifts of the given string can be found inside it.\r\n\r\ndoubled.find(goal) returns the starting index of the first occurrence of substring goal in the string doubled.\r\nstring::npos means until the end of the string and is used to indicate no matches.",
+  "timestamp": "2026-01-12T06:12:11.343Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-12_812RotateString_Malhar_83aa5ce7-4550-478d-9c70-1a4cef1b954f.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "812. Rotate String",
+    "difficultyLabel": "Easy"
+  }
+}
