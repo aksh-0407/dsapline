@@ -1,5 +1,6 @@
 [
   "Array",
+  "BFS",
   "Binary Search",
   "Bit Manipulation",
   "Bucket Method",
@@ -17,6 +18,7 @@
   "Matrix",
   "Prefix Sum",
   "Priority Queue",
+  "Queue",
   "Quickselect",
   "Recursion",
   "Simulation",
@@ -26,5 +28,6 @@
   "Switch Case",
   "Tree",
   "Unordered Map",
+  "Unordered Set",
   "data structures"
 ]
