@@ -1,0 +1,21 @@
+void solve()
+{
+    ll s, k, m;
+    cin >> s >> k >> m;
+    int flips = m/k;
+    int rem = m%k;
+
+    if (k >= s) {
+        if (s >= rem) cout << s - rem;
+        else cout << 0;
+    }
+    else {
+        int s2 = s;
+        if (flips%2==0) s2 = s;
+        else s2 = k;
+
+        if (s2 >= rem) cout << s2 - rem;
+        else cout << 0;
+
+    }
+}
