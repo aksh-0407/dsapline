@@ -1,0 +1,26 @@
+{
+  "id": "1183f92a-4f88-459d-9b8c-c8fee7ed2f9c",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://codeforces.com/contest/2184/problem/B",
+    "title": "2184B - Hourglass"
+  },
+  "difficulty": 5,
+  "tags": [
+    "Math"
+  ],
+  "notes": "",
+  "timestamp": "2026-01-13T05:42:46.536Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-13_2184BHourglass_Malhar_1183f92a-4f88-459d-9b8c-c8fee7ed2f9c.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "codeforces",
+  "enrichment": {
+    "realTitle": "2184B - Hourglass",
+    "contestId": "2184",
+    "problemIndex": "B"
+  }
+}
