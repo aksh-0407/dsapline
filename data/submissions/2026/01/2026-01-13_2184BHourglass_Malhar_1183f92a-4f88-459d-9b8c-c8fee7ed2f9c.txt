@@ -1,0 +1,33 @@
+    #include <bits/stdc++.h>
+    using namespace std;
+     
+    using ll = long long;
+    using ull = unsigned long long;
+     
+    void solve(){
+        ll s, k, m;
+        cin >> s >> k >> m;
+        int ans=0;
+     
+        if((m/k)%2){
+            if(k>s) ans=((s-m%k)>0) ? s-m%k : 0;
+            else ans=((k-m%k)>0) ? k-m%k : 0;
+        }
+        else{
+            ans=((s-m%k)>0) ? s-m%k : 0;
+        }
+        cout << ans << endl;
+    }
+     
+    int main(){
+        ios_base::sync_with_stdio(false);
+        cin.tie(NULL);
+     
+        int t;
+        cin >> t;
+        while(t--)
+        {
+            solve();
+        }
+        return 0;
+    } 
