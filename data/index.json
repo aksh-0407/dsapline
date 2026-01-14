@@ -1,5 +1,21 @@
 [
   {
+    "id": "d969be3f-544f-4f1d-a122-56e1dade9b32",
+    "title": "2182B - New Year Cake",
+    "difficulty": 3.5,
+    "tags": [
+      "Brute Force",
+      "Math"
+    ],
+    "username": "Aarrush",
+    "userId": "user_37muwmlfzBXUuKn85JwkHgYwO7B",
+    "date": "2026-01-14",
+    "timestamp": "2026-01-14T13:29:39.102Z",
+    "platform": "codeforces",
+    "contestId": "2182",
+    "problemIndex": "B"
+  },
+  {
     "id": "cb9f507f-f558-491c-ab76-986a311db7f5",
     "title": "229. Majority Element II",
     "difficulty": 7,
