@@ -1,5 +1,22 @@
 [
   {
+    "id": "cb9f507f-f558-491c-ab76-986a311db7f5",
+    "title": "229. Majority Element II",
+    "difficulty": 7,
+    "tags": [
+      "Array",
+      "Hash Table",
+      "Sorting",
+      "Counting"
+    ],
+    "username": "Aarrush",
+    "userId": "user_37muwmlfzBXUuKn85JwkHgYwO7B",
+    "date": "2026-01-14",
+    "timestamp": "2026-01-14T05:29:38.784Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "423d836b-730b-466f-a3f8-108dafe57390",
     "title": "12. Integer to Roman",
     "difficulty": 5.5,
