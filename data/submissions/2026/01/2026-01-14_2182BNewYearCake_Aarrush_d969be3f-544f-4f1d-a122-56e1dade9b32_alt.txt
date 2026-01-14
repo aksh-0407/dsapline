@@ -1,0 +1,21 @@
+int check(int first, int second) {
+    int layer = 0;
+    while (true) {
+        int cost = (1 << layer);        
+        if (layer % 2 == 0) {
+            if (first >= cost) first -= cost;
+            else break;
+        } else {
+            if (second >= cost) second -= cost;
+            else break;
+        }
+        layer++;
+    }
+    return layer;
+}
+
+void solve() {
+    int a, b;
+    cin >> a >> b;
+    cout << max(check(a, b), check(b, a)) << "\n";
+}
