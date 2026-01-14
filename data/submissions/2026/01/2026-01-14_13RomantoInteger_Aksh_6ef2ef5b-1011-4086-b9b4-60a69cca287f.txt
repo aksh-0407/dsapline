@@ -1,0 +1,53 @@
+class Solution {
+public:
+    int romanToInt(string s) {
+        int i = s.size()-1;
+        int value = 0;
+
+        while(s[i]=='I'){
+            value++;
+            i--;
+            if (i<0) break;
+        }
+        if(i<0) return value;
+
+        if (i>0 && s[i]=='V' && s[i-1]=='I') {value +=4; i-=2;}
+        else if (s[i]=='V') {value +=5; i--;}
+        if(i<0) return value;
+        
+        if (i>0 && s[i]=='X' && s[i-1]=='I') {value +=9; i-=2;}
+        if(i<0) return value;
+        while(s[i]=='X'){
+            value += 10;
+            i--;
+            if (i<0) break;
+        }
+        if(i<0) return value;
+
+        if (i>0 && s[i]=='L' && s[i-1]=='X') {value +=40; i-=2;}
+        else if (s[i]=='L') {value +=50; i--;}
+        if(i<0) return value;
+
+        if (i>0 && s[i]=='C' && s[i-1]=='X') {value +=90; i-=2;}
+        if(i<0) return value;
+        while(s[i]=='C'){
+            value += 100;
+            i--;
+            if (i<0) break;
+        }
+        if(i<0) return value;
+
+        if (i>0 && s[i]=='D' && s[i-1]=='C') {value +=400; i-=2;}
+        else if (s[i]=='D') {value +=500; i--;}
+        if(i<0) return value;
+
+        if (i>0 && s[i]=='M' && s[i-1]=='C') {value +=900; i-=2;}
+        if(i<0) return value;
+        while(s[i]=='M'){
+            value += 1000;
+            i--;
+            if (i<0) break;
+        }
+        return value;
+    }
+};
