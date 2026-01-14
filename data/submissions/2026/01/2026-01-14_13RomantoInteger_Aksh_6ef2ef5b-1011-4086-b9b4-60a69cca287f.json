@@ -1,0 +1,27 @@
+{
+  "id": "6ef2ef5b-1011-4086-b9b4-60a69cca287f",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/roman-to-integer/",
+    "title": "13. Roman to Integer"
+  },
+  "difficulty": 2,
+  "tags": [
+    "Hash Table",
+    "Math",
+    "String"
+  ],
+  "notes": "",
+  "timestamp": "2026-01-14T23:37:44.133Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-14_13RomantoInteger_Aksh_6ef2ef5b-1011-4086-b9b4-60a69cca287f.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "13. Roman to Integer",
+    "difficultyLabel": "Easy"
+  }
+}
