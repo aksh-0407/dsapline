@@ -1,0 +1,19 @@
+class Solution {
+public:
+    string reverseWords(string s) {
+        int n=s.length();
+        string ans="";
+        int r=n-1;
+        while(r>=0){
+            while(r>=0 && s[r]==' ') r--;
+            if(r<0) break;
+            int l=r;
+            while(l>=0 && s[l]!=' ') l--;
+            ans+=s.substr(l+1, r-l);
+            ans+=' ';
+            r=l-1;
+        }
+        if(ans!="") ans.pop_back();
+        return ans;
+    }
+};
