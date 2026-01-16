@@ -1,5 +1,20 @@
 [
   {
+    "id": "116e851f-70ed-4dff-adf2-75d964460121",
+    "title": "50. Pow(x, n)",
+    "difficulty": 5,
+    "tags": [
+      "Math",
+      "Recursion"
+    ],
+    "username": "Aksh",
+    "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+    "date": "2026-01-16",
+    "timestamp": "2026-01-16T22:25:34.892Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "c2491f75-ff1e-483f-8dc7-d3a9c53cad79",
     "title": "151. Reverse Words in a String",
     "difficulty": 6,
