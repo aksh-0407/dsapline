@@ -1,0 +1,26 @@
+{
+  "id": "c2491f75-ff1e-483f-8dc7-d3a9c53cad79",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://leetcode.com/problems/reverse-words-in-a-string/",
+    "title": "151. Reverse Words in a String"
+  },
+  "difficulty": 6,
+  "tags": [
+    "Two Pointers",
+    "String"
+  ],
+  "notes": "Used two pointers to track start and end of each word",
+  "timestamp": "2026-01-16T10:18:48.337Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-16_151ReverseWordsinaString_Malhar_c2491f75-ff1e-483f-8dc7-d3a9c53cad79.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "151. Reverse Words in a String",
+    "difficultyLabel": "Medium"
+  }
+}
