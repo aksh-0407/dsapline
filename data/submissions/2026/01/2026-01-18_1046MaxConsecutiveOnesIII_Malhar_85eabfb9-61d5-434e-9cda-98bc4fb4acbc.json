@@ -1,0 +1,28 @@
+{
+  "id": "85eabfb9-61d5-434e-9cda-98bc4fb4acbc",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://leetcode.com/problems/max-consecutive-ones-iii/",
+    "title": "1046. Max Consecutive Ones III"
+  },
+  "difficulty": 3.5,
+  "tags": [
+    "Array",
+    "Binary Search",
+    "Sliding Window",
+    "Prefix Sum"
+  ],
+  "notes": "Standard sliding window",
+  "timestamp": "2026-01-18T09:54:31.072Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-18_1046MaxConsecutiveOnesIII_Malhar_85eabfb9-61d5-434e-9cda-98bc4fb4acbc.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "1046. Max Consecutive Ones III",
+    "difficultyLabel": "Medium"
+  }
+}
