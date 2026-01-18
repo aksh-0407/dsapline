@@ -1,5 +1,22 @@
 [
   {
+    "id": "85eabfb9-61d5-434e-9cda-98bc4fb4acbc",
+    "title": "1046. Max Consecutive Ones III",
+    "difficulty": 3.5,
+    "tags": [
+      "Array",
+      "Binary Search",
+      "Sliding Window",
+      "Prefix Sum"
+    ],
+    "username": "Malhar",
+    "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+    "date": "2026-01-18",
+    "timestamp": "2026-01-18T09:54:31.072Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "116e851f-70ed-4dff-adf2-75d964460121",
     "title": "50. Pow(x, n)",
     "difficulty": 5,
