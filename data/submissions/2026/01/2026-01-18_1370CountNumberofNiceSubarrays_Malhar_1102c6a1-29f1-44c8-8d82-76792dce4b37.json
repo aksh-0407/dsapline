@@ -1,0 +1,29 @@
+{
+  "id": "1102c6a1-29f1-44c8-8d82-76792dce4b37",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://leetcode.com/problems/count-number-of-nice-subarrays/",
+    "title": "1370. Count Number of Nice Subarrays"
+  },
+  "difficulty": 6,
+  "tags": [
+    "Array",
+    "Hash Table",
+    "Math",
+    "Sliding Window",
+    "Prefix Sum"
+  ],
+  "notes": "Used sliding window\r\nWhenever number of odd nos. in window=k, the number of subarrays possible are (even nos. on left [+first odd no.])*(no. of even nos. on right [+first odd no.])\r\nTherefore keep decreasing size of window from left as long as the leftmost number is even (and till the first odd no.) and keep count of how many decreased in variable `subs`\r\nThen while increasing size from right we keep adding `subs` to the total nice count which is essentially adding (even nos. on left +1)*(even nos. on right +1)\r\nReset the `subs` variable when next odd no. is reached so that we can calculate the possible subarrays for the next group of k odd nos.",
+  "timestamp": "2026-01-18T10:50:11.941Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-18_1370CountNumberofNiceSubarrays_Malhar_1102c6a1-29f1-44c8-8d82-76792dce4b37.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "1370. Count Number of Nice Subarrays",
+    "difficultyLabel": "Medium"
+  }
+}
