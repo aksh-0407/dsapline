@@ -1,5 +1,21 @@
 [
   {
+    "id": "8dcdc505-5b99-47b3-b818-3acacc96d00c",
+    "title": "424. Longest Repeating Character Replacement",
+    "difficulty": 5,
+    "tags": [
+      "Hash Table",
+      "String",
+      "Sliding Window"
+    ],
+    "username": "Malhar",
+    "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+    "date": "2026-01-19",
+    "timestamp": "2026-01-19T13:13:30.561Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "1102c6a1-29f1-44c8-8d82-76792dce4b37",
     "title": "1370. Count Number of Nice Subarrays",
     "difficulty": 6,
