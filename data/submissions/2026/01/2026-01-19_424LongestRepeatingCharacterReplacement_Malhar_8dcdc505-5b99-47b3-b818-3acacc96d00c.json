@@ -1,0 +1,27 @@
+{
+  "id": "8dcdc505-5b99-47b3-b818-3acacc96d00c",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://leetcode.com/problems/longest-repeating-character-replacement/",
+    "title": "424. Longest Repeating Character Replacement"
+  },
+  "difficulty": 5,
+  "tags": [
+    "Hash Table",
+    "String",
+    "Sliding Window"
+  ],
+  "notes": "Sliding window\r\nUnlike standard sliding window qs where we use a while loop to shrink the window from left, here we don't shrink the window size until we encounter a new max frequency character. Otherwise, the window size is kept constant and just slid to the right\r\nThis works because we don't need to find every valid window, just the maximum one so there is no need to keep updating the max frequency, we can just update when a new max occuring character is encountered",
+  "timestamp": "2026-01-19T13:13:30.561Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-19_424LongestRepeatingCharacterReplacement_Malhar_8dcdc505-5b99-47b3-b818-3acacc96d00c.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "424. Longest Repeating Character Replacement",
+    "difficultyLabel": "Medium"
+  }
+}
