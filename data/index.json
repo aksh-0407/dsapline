@@ -1,5 +1,21 @@
 [
   {
+    "id": "bfb31469-7f12-4495-b5b4-990b09c093f7",
+    "title": "1538. Maximum Points You Can Obtain from Cards",
+    "difficulty": 3,
+    "tags": [
+      "Array",
+      "Sliding Window",
+      "Prefix Sum"
+    ],
+    "username": "Malhar",
+    "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+    "date": "2026-01-20",
+    "timestamp": "2026-01-20T13:24:58.683Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "8dcdc505-5b99-47b3-b818-3acacc96d00c",
     "title": "424. Longest Repeating Character Replacement",
     "difficulty": 5,
