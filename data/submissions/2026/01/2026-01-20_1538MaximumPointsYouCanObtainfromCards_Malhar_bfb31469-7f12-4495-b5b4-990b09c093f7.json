@@ -1,0 +1,27 @@
+{
+  "id": "bfb31469-7f12-4495-b5b4-990b09c093f7",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://leetcode.com/problems/maximum-points-you-can-obtain-from-cards/",
+    "title": "1538. Maximum Points You Can Obtain from Cards"
+  },
+  "difficulty": 3,
+  "tags": [
+    "Array",
+    "Sliding Window",
+    "Prefix Sum"
+  ],
+  "notes": "Calculate sum of k sized subarray from left, then keep track of max as we reduce one element from the left subarray and keep adding one from right, return the max.\r\n\r\nAlternate approach: Use sliding window of sized n-k, find subarray with min. sum and return (total sum) - (min. sum)",
+  "timestamp": "2026-01-20T13:24:58.683Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-20_1538MaximumPointsYouCanObtainfromCards_Malhar_bfb31469-7f12-4495-b5b4-990b09c093f7.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "1538. Maximum Points You Can Obtain from Cards",
+    "difficultyLabel": "Medium"
+  }
+}
