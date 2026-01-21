@@ -1,5 +1,22 @@
 [
   {
+    "id": "e74daabe-53ca-49ee-ac1e-433f7541f01f",
+    "title": "1088B - Ehab and subtraction",
+    "difficulty": 3.5,
+    "tags": [
+      "Implementation",
+      "Sortings"
+    ],
+    "username": "Malhar",
+    "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+    "date": "2026-01-21",
+    "timestamp": "2026-01-21T13:13:00.993Z",
+    "platform": "codeforces",
+    "rating": 1000,
+    "contestId": "1088",
+    "problemIndex": "B"
+  },
+  {
     "id": "139e1e98-a0f8-4cd8-858c-ae3d36b18c71",
     "title": "135. Candy",
     "difficulty": 3.5,
