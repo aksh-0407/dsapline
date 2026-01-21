@@ -1,0 +1,40 @@
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        vector<pair<int, int>> a;
+        for(int i = 0; i < nums.size(); i++){
+            a.push_back({nums[i], i});
+        }
+        mergeSort(a, 0, a.size() - 1);
+        int l = 0, r = a.size() - 1;
+        while(l < r){
+            if(a[l].first + a[r].first == target){
+                return {a[l].second, a[r].second};
+            }else if(a[l].first + a[r].first > target){
+                r--;
+            }else l++;
+        }
+        return {};
+    }
+private:
+    void mergeSort(vector<pair<int,int>>& arr, int l, int r){
+        if(l >= r) return;
+        int mid = l + (r - l) / 2;
+        mergeSort(arr, l, mid);
+        mergeSort(arr, mid + 1, r);
+        merge(arr, l, mid, r);
+    }
+    void merge(vector<pair<int,int>>& a, int l, int mid, int r){
+        vector<pair<int,int>> temp;
+        int i = l, j = mid + 1;
+        while(i <= mid && j <= r){
+            if(a[i].first <= a[j].first) temp.push_back(a[i++]);
+            else temp.push_back(a[j++]);
+        }
+        while(i <= mid) temp.push_back(a[i++]);
+        while(j <= r) temp.push_back(a[j++]);
+        for(int t = 0; t < temp.size(); t++){
+            a[l + t] = temp[t];
+        }
+    }
+};
