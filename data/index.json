@@ -1,5 +1,20 @@
 [
   {
+    "id": "139e1e98-a0f8-4cd8-858c-ae3d36b18c71",
+    "title": "135. Candy",
+    "difficulty": 3.5,
+    "tags": [
+      "Array",
+      "Greedy"
+    ],
+    "username": "Malhar",
+    "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+    "date": "2026-01-21",
+    "timestamp": "2026-01-21T10:11:17.431Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Hard"
+  },
+  {
     "id": "8b6fa6b8-3fd1-4c1d-9bd0-0bc2ffb4b989",
     "title": "3334. Apple Redistribution into Boxes",
     "difficulty": 0.5,
