@@ -1,5 +1,21 @@
 [
   {
+    "id": "8b6fa6b8-3fd1-4c1d-9bd0-0bc2ffb4b989",
+    "title": "3334. Apple Redistribution into Boxes",
+    "difficulty": 0.5,
+    "tags": [
+      "Array",
+      "Greedy",
+      "Sorting"
+    ],
+    "username": "Aksh",
+    "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+    "date": "2026-01-21",
+    "timestamp": "2026-01-21T07:21:26.150Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Easy"
+  },
+  {
     "id": "bfb31469-7f12-4495-b5b4-990b09c093f7",
     "title": "1538. Maximum Points You Can Obtain from Cards",
     "difficulty": 3,
