@@ -1,0 +1,26 @@
+{
+  "id": "139e1e98-a0f8-4cd8-858c-ae3d36b18c71",
+  "userId": "user_37mwOOuKufmOhfIrHL4rq3xIj0P",
+  "username": "Malhar",
+  "question": {
+    "url": "https://leetcode.com/problems/candy/",
+    "title": "135. Candy"
+  },
+  "difficulty": 3.5,
+  "tags": [
+    "Array",
+    "Greedy"
+  ],
+  "notes": "",
+  "timestamp": "2026-01-21T10:11:17.431Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-21_135Candy_Malhar_139e1e98-a0f8-4cd8-858c-ae3d36b18c71.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "135. Candy",
+    "difficultyLabel": "Hard"
+  }
+}
