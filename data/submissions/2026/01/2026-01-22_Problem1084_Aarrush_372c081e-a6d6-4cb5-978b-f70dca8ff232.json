@@ -1,0 +1,23 @@
+{
+  "id": "372c081e-a6d6-4cb5-978b-f70dca8ff232",
+  "userId": "user_37muwmlfzBXUuKn85JwkHgYwO7B",
+  "username": "Aarrush",
+  "question": {
+    "url": "https://cses.fi/problemset/task/1084/",
+    "title": "Problem 1084"
+  },
+  "difficulty": 6.5,
+  "tags": [
+    "Array",
+    "Two Pointers",
+    "Sorting"
+  ],
+  "notes": "Had figured out the logic but was getting TLE in that. Need to work on 2 pointers implementation. This question has a unique usecase of 2 pointers where both the pointers are not of the same vectors but belong to different vectors. ",
+  "timestamp": "2026-01-22T17:21:19.136Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/01/2026-01-22_Problem1084_Aarrush_372c081e-a6d6-4cb5-978b-f70dca8ff232.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "other"
+}
