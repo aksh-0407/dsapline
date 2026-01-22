@@ -1,5 +1,24 @@
 [
   {
+    "id": "5d6c39ad-9263-4d28-9839-db4acbf9a008",
+    "title": "1618D - Array and Operations",
+    "difficulty": 4.5,
+    "tags": [
+      "Dp",
+      "Greedy",
+      "Math",
+      "Sorting"
+    ],
+    "username": "Aarrush",
+    "userId": "user_37muwmlfzBXUuKn85JwkHgYwO7B",
+    "date": "2026-01-22",
+    "timestamp": "2026-01-22T16:31:42.628Z",
+    "platform": "codeforces",
+    "rating": 1300,
+    "contestId": "1618",
+    "problemIndex": "D"
+  },
+  {
     "id": "5e365a41-9687-426c-8057-8f775e95fd79",
     "title": "Problem 15863532",
     "difficulty": 5,
