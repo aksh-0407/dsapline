@@ -1,5 +1,20 @@
 [
   {
+    "id": "372c081e-a6d6-4cb5-978b-f70dca8ff232",
+    "title": "Problem 1084",
+    "difficulty": 6.5,
+    "tags": [
+      "Array",
+      "Two Pointers",
+      "Sorting"
+    ],
+    "username": "Aarrush",
+    "userId": "user_37muwmlfzBXUuKn85JwkHgYwO7B",
+    "date": "2026-01-22",
+    "timestamp": "2026-01-22T17:21:19.136Z",
+    "platform": "other"
+  },
+  {
     "id": "5d6c39ad-9263-4d28-9839-db4acbf9a008",
     "title": "1618D - Array and Operations",
     "difficulty": 4.5,
