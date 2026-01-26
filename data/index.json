@@ -1,5 +1,20 @@
 [
   {
+    "id": "13e17d27-f3aa-43f7-ab17-61fcdba722b2",
+    "title": "56. Merge Intervals",
+    "difficulty": 6,
+    "tags": [
+      "Array",
+      "Sorting"
+    ],
+    "username": "Aksh",
+    "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+    "date": "2026-01-26",
+    "timestamp": "2026-01-26T17:40:58.035Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "372c081e-a6d6-4cb5-978b-f70dca8ff232",
     "title": "Problem 1084",
     "difficulty": 6.5,
