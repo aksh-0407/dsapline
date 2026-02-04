@@ -1,5 +1,20 @@
 [
   {
+    "id": "21403398-c75c-4038-8ec7-cc644a08f192",
+    "title": "34. Find First and Last Position of Element in Sorted Array",
+    "difficulty": 6,
+    "tags": [
+      "Array",
+      "Binary Search"
+    ],
+    "username": "Arjun",
+    "userId": "user_37muhWkNaZ3YWnHKyvN95EMbnpi",
+    "date": "2026-02-04",
+    "timestamp": "2026-02-04T09:03:48.130Z",
+    "platform": "leetcode",
+    "difficultyLabel": "Medium"
+  },
+  {
     "id": "13e17d27-f3aa-43f7-ab17-61fcdba722b2",
     "title": "56. Merge Intervals",
     "difficulty": 6,
