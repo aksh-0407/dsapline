@@ -1,0 +1,36 @@
+class Solution {
+public:
+    int search(vector<int>& nums, int target) {
+        int n = nums.size();
+        if (n == 0)
+            return -1;
+
+        int min = 0;
+        for (int a = 1 << 13; a > 0; a >>= 1) {
+            if (min + a < n && nums[min + a] >= nums[0])
+                min += a;
+        }
+        int low, high;
+        min++;
+
+        if(target<=nums[min-1] && target >= nums[0]){
+            low = 0;
+            high = min-1;
+        }
+        else{
+            low = min;
+            high = n-1;
+        }
+
+        int pos = low-1;
+
+        for (int a = 1 << 13; a > 0; a >>= 1) {
+            if(pos +a <= high && nums[pos+a]< target)
+                pos+=a;
+        }
+
+        if(pos+1<= high && nums[pos+1] == target) return pos+1;
+        else return -1;
+
+    }
+};
