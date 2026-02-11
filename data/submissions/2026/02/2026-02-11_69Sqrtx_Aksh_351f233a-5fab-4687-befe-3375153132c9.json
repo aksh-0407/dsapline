@@ -1,0 +1,26 @@
+{
+  "id": "351f233a-5fab-4687-befe-3375153132c9",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://leetcode.com/problems/sqrtx/description/",
+    "title": "69. Sqrt(x)"
+  },
+  "difficulty": 3,
+  "tags": [
+    "Math",
+    "Binary Search"
+  ],
+  "notes": "Learning binary search",
+  "timestamp": "2026-02-11T02:39:07.605Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/02/2026-02-11_69Sqrtx_Aksh_351f233a-5fab-4687-befe-3375153132c9.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "leetcode",
+  "enrichment": {
+    "realTitle": "69. Sqrt(x)",
+    "difficultyLabel": "Easy"
+  }
+}
