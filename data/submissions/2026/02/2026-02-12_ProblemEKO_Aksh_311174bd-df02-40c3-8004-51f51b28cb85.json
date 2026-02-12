@@ -1,0 +1,21 @@
+{
+  "id": "311174bd-df02-40c3-8004-51f51b28cb85",
+  "userId": "user_37hSb40YjPzeYW6e9IJSmKrnJIH",
+  "username": "Aksh",
+  "question": {
+    "url": "https://www.spoj.com/problems/EKO/",
+    "title": "Problem EKO"
+  },
+  "difficulty": 4.5,
+  "tags": [
+    "Binary Search"
+  ],
+  "notes": "",
+  "timestamp": "2026-02-12T00:26:25.359Z",
+  "mainSolution": {
+    "path": "data/submissions/2026/02/2026-02-12_ProblemEKO_Aksh_311174bd-df02-40c3-8004-51f51b28cb85.txt",
+    "extension": "txt"
+  },
+  "alternateSolution": null,
+  "platform": "other"
+}
