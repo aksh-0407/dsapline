@@ -1,0 +1,79 @@
+
+> dsapline@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.56.144.193:3000
+- Environments: .env.local, .env
+✓ Ready in 195ms
+
+
+=== MIGRATION triggered by null ===
+
+Clearing existing data...
+  ✓ All tables cleared.
+
+Loaded 45 entries from index.json
+  User: Aksh | solved: 21 | streak: 0/6
+  User: Vedant | solved: 1 | streak: 0/1
+  User: Arjun | solved: 2 | streak: 0/1
+  User: Aarrush | solved: 4 | streak: 0/1
+  User: Ansh Varma | solved: 3 | streak: 0/1
+  User: Malhar Bhalerao | solved: 14 | streak: 0/4
+  ✓ 6 users created.
+
+  ✓ 38 problems created.
+
+ POST /api/migrate 200 in 6.8s (next.js: 91ms, proxy.ts: 111ms, application-code: 6.6s)
+  ✓ 45 main submissions + 10 alternates created.
+    Code found: 45 | Code missing: 0
+
+  ✓ Recomputed average difficulty for 37 problems.
+
+=== MIGRATION COMPLETE ===
+{
+  "users": 6,
+  "problems": 38,
+  "mainSubmissions": 45,
+  "altSubmissions": 10,
+  "totalSubmissionRows": 55,
+  "codeFound": 45,
+  "codeMissing": 0,
+  "problemsWithAvgDifficulty": 37
+}
+
+=== MIGRATION triggered by null ===
+
+Clearing existing data...
+  ✓ All tables cleared.
+
+Loaded 45 entries from index.json
+  User: Aksh | solved: 21 | streak: 0/6
+  User: Vedant | solved: 1 | streak: 0/1
+  User: Arjun | solved: 2 | streak: 0/1
+  User: Aarrush | solved: 4 | streak: 0/1
+  User: Ansh Varma | solved: 3 | streak: 0/1
+  User: Malhar Bhalerao | solved: 14 | streak: 0/4
+  ✓ 6 users created.
+
+  ✓ 38 problems created.
+
+  ✓ 45 main submissions + 10 alternates created.
+    Code found: 45 | Code missing: 0
+
+  ✓ Recomputed average difficulty for 37 problems.
+
+=== MIGRATION COMPLETE ===
+{
+  "users": 6,
+  "problems": 38,
+  "mainSubmissions": 45,
+  "altSubmissions": 10,
+  "totalSubmissionRows": 55,
+  "codeFound": 45,
+  "codeMissing": 0,
+  "problemsWithAvgDifficulty": 37
+}
+ POST /api/migrate 200 in 24.2s (next.js: 2ms, proxy.ts: 7ms, application-code: 24.2s)
+[?25h

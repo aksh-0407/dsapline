@@ -5,7 +5,7 @@ import { IndexEntry } from "@/lib/types";
 import { ArchiveFilters } from "./ArchiveFilters"; 
 import { INITIAL_FILTERS, filterSubmissions } from "@/lib/filterEngine";
 import { Code2, Calendar, User, Filter } from "lucide-react";
-import Link from "next/link"; // Import Link for internal navigation
+import Link from "next/link";
 
 interface Props {
   data: IndexEntry[];
@@ -76,7 +76,13 @@ export default function Archive({ data, currentUserId }: Props) {
 
                     {/* Title & Tags */}
                     <td className="px-6 py-4 max-w-xs">
-                      <div className="font-semibold text-white truncate" title={item.title}>{item.title}</div>
+                      {item.problemSlug ? (
+                        <Link href={`/problem/${item.problemSlug}`} className="font-semibold text-white truncate block hover:text-blue-400 transition-colors" title={item.title}>
+                          {item.title}
+                        </Link>
+                      ) : (
+                        <div className="font-semibold text-white truncate" title={item.title}>{item.title}</div>
+                      )}
                       
                       {/* Sub-info: Contest ID for Codeforces */}
                       {item.contestId && (

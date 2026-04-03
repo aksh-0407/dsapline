@@ -22,7 +22,7 @@ export default async function UserProfile({ params }: Props) {
           <User size={48} className="mx-auto text-gray-600" />
           <h1 className="text-2xl font-bold text-gray-400">User not found</h1>
           <p className="text-gray-500">ID: {userId}</p>
-          <p className="text-sm text-gray-600">This Whizz hasn't submitted any problems yet.</p>
+          <p className="text-sm text-gray-600">This Whizz hasn&apos;t submitted any problems yet.</p>
         </div>
       </div>
     );
@@ -49,7 +49,6 @@ export default async function UserProfile({ params }: Props) {
             {/* User Identity */}
             <div className="space-y-2 flex-1">
               <h1 className="text-4xl font-bold text-white capitalize">{username}</h1>
-              {/* REMOVED: "Leetcode Solver" subtitle */}
               <p className="text-gray-600 font-mono text-xs">{userId}</p>
             </div>
 
@@ -81,18 +80,13 @@ export default async function UserProfile({ params }: Props) {
           </div>
         </div>
 
-        {/* THE USER'S HISTORY */}
+        {/* Problem History */}
         <div className="space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-800 pb-4">
             <LinkIcon size={24} className="text-blue-500" />
             <h2 className="text-2xl font-bold text-white">Problem History</h2>
           </div>
           
-          {/* We reconstruct the archive list from stats.recentActivity isn't enough (it's slice(0,5)) 
-              so we pass the full filtered list if needed, OR we can let Archive fetch everything.
-              Actually, Archive expects 'data'. Let's fetch all data for this user to pass to Archive.
-           */}
-           {/* RE-FETCHING RAW DATA FOR ARCHIVE TABLE IS CLEANEST */}
           <ArchiveWrapper userId={userId} />
         </div>
 
@@ -101,11 +95,9 @@ export default async function UserProfile({ params }: Props) {
   );
 }
 
-// Helper component to fetch full history for the table
 async function ArchiveWrapper({ userId }: { userId: string }) {
-  const { getGlobalArchive } = await import("@/lib/archive");
-  const allData = await getGlobalArchive();
-  const userData = allData.filter((item) => item.userId === userId);
+  const { getUserArchive } = await import("@/lib/archive");
+  const userData = await getUserArchive(userId);
   
   return <Archive data={userData} currentUserId={null} />;
 }

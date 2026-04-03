@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated prisma client
+/lib/generated/prisma
+
+# test & debug scripts
+test_*.js
+test_*.cjs
+
+# load testing
+k6_*
+
+# binary archives
+*.zip

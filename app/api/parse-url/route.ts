@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     if (!data) return NextResponse.json({ success: false });
 
     return NextResponse.json({ success: true, data });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to parse" }, { status: 500 });
   }
 }

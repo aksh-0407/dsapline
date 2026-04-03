@@ -1,7 +1,7 @@
 "use client";
 
 import { FilterState } from "@/lib/filterEngine";
-import { Search, Calendar, Tag, Filter, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Calendar, Tag, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -14,7 +14,7 @@ export function ArchiveFilters({ filters, setFilters, availableTags }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Helper to update specific fields
-  const update = (key: keyof FilterState, value: any) => {
+  const update = (key: keyof FilterState, value: FilterState[keyof FilterState]) => {
     setFilters({ ...filters, [key]: value });
   };
 

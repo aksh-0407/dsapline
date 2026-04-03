@@ -1,12 +1,12 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { saveFile } from "@/lib/github";
-import { enrichProblemData } from "@/lib/services"; 
-import { safeUpdateIndex, safeUpdateUserStats, safeUpdateGlobalTags, getGlobalTags } from "@/lib/db";
+import prisma from "@/lib/prisma";
+import { enrichProblemData } from "@/lib/services";
 import path from "path";
 
 // --- CONFIGURATION ---
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
+const MAX_ALT_SOLUTIONS = 10;
 
 type Platform = "leetcode" | "codeforces" | "hackerrank" | "geeksforgeeks" | "other";
 
@@ -27,9 +27,33 @@ async function processCodeInput(file: File | null, text: string) {
     return { content, ext };
   }
   if (text && text.trim()) {
-    return { content: text, ext: "txt" }; 
+    return { content: text, ext: "txt" };
   }
   return null;
+}
+
+/**
+ * Recomputes and writes the community average difficulty for a problem.
+ * Called after every submission create/edit that touches difficultyRating.
+ */
+async function recomputeProblemAvgDifficulty(problemSlug: string): Promise<void> {
+  const agg = await prisma.submission.aggregate({
+    where: {
+      problemSlug,
+      difficultyRating: { not: null },
+    },
+    _avg: { difficultyRating: true },
+  });
+
+  const avg = agg._avg.difficultyRating;
+
+  // Only update if there is at least one rated submission; otherwise leave existing value
+  if (avg !== null) {
+    await prisma.problem.update({
+      where: { slug: problemSlug },
+      data: { difficultyValue: avg },
+    });
+  }
 }
 
 export async function POST(req: Request) {
@@ -37,7 +61,7 @@ export async function POST(req: Request) {
     // 1. Security & Identity
     const { userId } = await auth();
     const user = await currentUser();
-    
+
     if (!userId || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -49,31 +73,26 @@ export async function POST(req: Request) {
     const manualTags = JSON.parse(formData.get("tags") as string) as string[];
     const notes = formData.get("notes") as string;
 
+    // Resolve the user's personal difficulty rating (null if unrated / invalid)
+    const difficultyRating =
+      !isNaN(difficulty) && difficulty >= 0 && difficulty <= 10 ? difficulty : null;
+
     // 3. Smart Enrichment
     const enrichedData = await enrichProblemData(url);
-    
-    // 4. Tag Normalization
-    const incomingTags = [...manualTags, ...(enrichedData?.tags || [])];
-    const globalTags = await getGlobalTags();
-    const submissionTags: string[] = [];
-    const fingerprintsMap = new Map<string, string>();
-    
-    globalTags.forEach(t => fingerprintsMap.set(t.toLowerCase().replace(/[^a-z0-9]/g, ""), t));
-    
-    incomingTags.forEach(rawTag => {
-       const print = rawTag.toLowerCase().replace(/[^a-z0-9]/g, "");
-       if (fingerprintsMap.has(print)) {
-         const niceTag = fingerprintsMap.get(print)!;
-         if (!submissionTags.includes(niceTag)) submissionTags.push(niceTag);
-       } else {
-         const formatted = rawTag.replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-         if (!submissionTags.includes(formatted)) submissionTags.push(formatted);
-         fingerprintsMap.set(print, formatted);
-       }
-    });
+
+    // 4. Tag Merging (manual + enriched, deduplicated)
+    const allTags = [...manualTags, ...(enrichedData?.tags || [])];
+    const submissionTags = Array.from(
+      new Map(
+        allTags.map((tag) => {
+          const key = tag.toLowerCase().replace(/[^a-z0-9]/g, "");
+          const formatted = tag.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          return [key, formatted];
+        })
+      ).values()
+    );
 
     // 5. Determine Final Title
-    // Fallback for "Other" platforms: "Problem" + last segment of URL
     let displayTitle = enrichedData?.realTitle;
     if (!displayTitle) {
       const urlParts = url.split("/").filter(Boolean);
@@ -81,7 +100,7 @@ export async function POST(req: Request) {
       displayTitle = "Problem " + lastPart;
     }
 
-    // 6. Process Code
+    // 6. Process Main Code
     const mainResult = await processCodeInput(
       formData.get("file") as File | null,
       formData.get("code") as string
@@ -91,99 +110,102 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No solution code provided" }, { status: 400 });
     }
 
-    const altLabel = formData.get("altLabel") as string;
-    const altResult = await processCodeInput(
-      formData.get("altFile") as File | null,
-      formData.get("altCode") as string
-    );
+    // 7. Process Alternate Solutions (up to MAX_ALT_SOLUTIONS)
+    const altResults: Array<{ content: string; ext: string; label: string }> = [];
 
-    // 7. GENERATE PATHS (CRITICAL: STRICT LOGIC)
-    const submissionId = crypto.randomUUID();
-    const timestamp = new Date();
-    const dateStr = timestamp.toISOString().split('T')[0]; // "2026-01-04"
-    
-    // Strict Directory Logic: Use String Split, NOT Date Object (Avoids timezone bugs)
-    const [year, month] = dateStr.split("-"); 
-    
-    // Usernames
-    let safeUsername = "user";
-    if (user.username) safeUsername = user.username;
-    else if (user.firstName) safeUsername = user.firstName;
-    const cleanUsername = safeUsername.replace(/[^a-zA-Z0-9]/g, "");
+    for (let i = 0; i < MAX_ALT_SOLUTIONS; i++) {
+      const altLabel = (formData.get(`alt_label_${i}`) as string) || `Alternate Solution ${i + 1}`;
+      const altFile = formData.get(`alt_file_${i}`) as File | null;
+      const altCode = formData.get(`alt_code_${i}`) as string;
 
-    // Strict Filename Logic: Alphanumeric ONLY
-    // This MUST match getSubmissionById in viewer.ts exactly!
-    const safeTitle = displayTitle.replace(/[^a-zA-Z0-9]/g, ""); 
-    const fileNameBase = `${dateStr}_${safeTitle}_${cleanUsername}_${submissionId}`;
-    
-    const mainCodePath = `data/submissions/${year}/${month}/${fileNameBase}.${mainResult.ext}`;
-    const metaPath = `data/submissions/${year}/${month}/${fileNameBase}.json`;
-
-    // 8. Save Files
-    const savePromises = [];
-
-    savePromises.push(saveFile(mainCodePath, mainResult.content, undefined, `Code: ${displayTitle}`));
-
-    let altData = null;
-    if (altResult) {
-      const altCodePath = `data/submissions/${year}/${month}/${fileNameBase}_alt.${altResult.ext}`;
-      savePromises.push(saveFile(altCodePath, altResult.content, undefined, `Alt Code: ${displayTitle}`));
-      altData = { label: altLabel || "Alternate Solution", path: altCodePath, extension: altResult.ext };
+      const altResult = await processCodeInput(altFile, altCode);
+      if (altResult) {
+        altResults.push({ ...altResult, label: altLabel });
+      }
     }
 
+    // 8. Determine Problem Slug & Platform
     const platform = detectPlatform(url);
+    const problemSlug = displayTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
 
-    const metadata = {
-      id: submissionId,
-      userId: userId,
-      username: cleanUsername,
-      question: { url, title: displayTitle },
-      difficulty,
-      tags: submissionTags,
-      notes,
-      timestamp: timestamp.toISOString(),
-      mainSolution: { path: mainCodePath, extension: mainResult.ext },
-      alternateSolution: altData,
-      platform: platform,
-      enrichment: enrichedData ? {
-        realTitle: enrichedData.realTitle,
-        difficultyLabel: enrichedData.difficultyLabel,
-        rating: enrichedData.rating,
-        contestId: enrichedData.contestId,
-        problemIndex: enrichedData.problemIndex
-      } : undefined
-    };
-    
-    savePromises.push(saveFile(metaPath, metadata, undefined, `Meta: ${displayTitle}`));
+    // 9. Ensure User exists in SQL (Clerk → SQL sync)
+    const fullName = `${user.firstName} ${user.lastName || ""}`.trim();
+    await prisma.user.upsert({
+      where: { id: userId },
+      update: { fullName, email: user.emailAddresses[0]?.emailAddress ?? `${userId}@clerk.user` },
+      create: {
+        id: userId,
+        email: user.emailAddresses[0]?.emailAddress ?? `${userId}@clerk.user`,
+        fullName,
+      },
+    });
 
-    await Promise.all(savePromises);
-    
-    // 9. Update Stats & Index
-    safeUpdateUserStats(userId, cleanUsername, dateStr); // Fire & Forget
-    safeUpdateGlobalTags(submissionTags); // Fire & Forget
+    // 10. Upsert Problem (difficultyValue will be set by recomputeProblemAvgDifficulty below)
+    await prisma.problem.upsert({
+      where: { slug: problemSlug },
+      update: {},
+      create: {
+        slug: problemSlug,
+        title: displayTitle,
+        difficultyValue: difficultyRating, // Initial value until avg is computed
+        difficultyLabel: enrichedData?.difficultyLabel || null,
+        platform,
+        url: url || null,
+        rating: enrichedData?.rating ?? null,
+      },
+    });
 
-    const indexEntry = {
-      id: submissionId,
-      title: displayTitle,
-      difficulty,
-      tags: submissionTags,
-      username: cleanUsername,
-      userId: userId,
-      date: dateStr,
-      timestamp: timestamp.toISOString(),
-      platform: platform,
-      difficultyLabel: enrichedData?.difficultyLabel,
-      rating: enrichedData?.rating,
-      contestId: enrichedData?.contestId,
-      problemIndex: enrichedData?.problemIndex,
-    };
-    
-    await safeUpdateIndex(indexEntry);
+    // 11. Create Main Submission
+    const submissionId = crypto.randomUUID();
+    await prisma.submission.create({
+      data: {
+        id: submissionId,
+        language: mainResult.ext,
+        codeSnippet: mainResult.content,
+        notes: notes || null,
+        status: "SOLVED",
+        tags: submissionTags,
+        difficultyRating,
+        userId,
+        problemSlug,
+      },
+    });
+
+    // 12. Create Alternate Submissions (if any provided)
+    for (const alt of altResults) {
+      await prisma.submission.create({
+        data: {
+          id: crypto.randomUUID(),
+          language: alt.ext,
+          codeSnippet: alt.content,
+          notes: alt.label,
+          status: "SOLVED",
+          tags: submissionTags,
+          difficultyRating, // Alternates share the same rating as main submission
+          userId,
+          problemSlug,
+        },
+      });
+    }
+
+    // 13. Recompute community average difficulty for this problem
+    await recomputeProblemAvgDifficulty(problemSlug);
+
+    // 14. Update user stats (+1 per problem submission, regardless of number of alternates)
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        totalSolved: { increment: 1 },
+      },
+    });
 
     return NextResponse.json({ success: true, id: submissionId });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Submission Failed:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }

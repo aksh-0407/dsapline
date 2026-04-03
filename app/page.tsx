@@ -45,8 +45,6 @@ export default async function Home() {
               Stop solving in a vacuum. Track your LeetCode & Codeforces journey, 
               visualize your consistency, and build a legacy of your code.
             </p>
-
-            {/* Buttons removed as requested. User must use top-right Sign In. */}
           </div>
         </section>
 
@@ -105,7 +103,7 @@ export default async function Home() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Dashboard</h2>
-            <p className="text-gray-400">Welcome back, Whizz.</p>
+            <p className="text-gray-400">Welcome back, {user?.firstName ?? "there"}.</p>
           </div>
           <Link href="/submit">
             <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition shadow-lg shadow-blue-900/20 hover:scale-[1.02]">

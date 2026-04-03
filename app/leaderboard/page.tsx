@@ -78,7 +78,6 @@ export default async function LeaderboardPage() {
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
             Leaderboard
           </h1>
-          {/* Subtitle Removed per instructions */}
         </div>
 
         {/* Client Component with Sorting Tabs */}

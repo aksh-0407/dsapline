@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =================================================
+// ENUMS (Data Integrity & Status Tracking)
+// =================================================
+enum Status {
+  SOLVED
+  ATTEMPTED
+  NEEDS_REVIEW
+}
+
+// =================================================
+// 1. USER TABLE (Identity & Dashboard Stats)
+// =================================================
+model User {
+  id            String       @id // Matches Clerk User ID
+  email         String       @unique
+  fullName      String?
+  
+  // Pre-calculated stats for O(1) Dashboard loading
+  totalSolved   Int          @default(0)
+  currentStreak Int          @default(0)
+  maxStreak     Int          @default(0)
+  
+  createdAt     DateTime     @default(now()) // Maps to old joinDate
+  updatedAt     DateTime     @updatedAt
+
+  // Relationships
+  submissions   Submission[]
+  comments      Comment[]
+}
+
+// =================================================
+// 2. PROBLEM TABLE (Static Catalog)
+// =================================================
+model Problem {
+  slug            String       @id // e.g., "33-search-in-rotated-sorted-array"
+  title           String       
+  
+  // Flexible Difficulty handling (Supports Leetcode "Easy" & Codeforces "4.5")
+  // difficultyValue = community AVG of Submission.difficultyRating (recomputed on every submission write)
+  difficultyValue Float?       
+  difficultyLabel String?      // Platform label: "Easy" | "Medium" | "Hard" (from API enrichment, not averaged)
+
+  
+  platform        String       // "leetcode", "codeforces", "other"
+  url             String?      
+  rating          Int?         // Specific to Codeforces (e.g., 1300)
+  
+  // Relationships
+  submissions     Submission[]
+  
+  @@index([platform]) // Speeds up filtering problems by platform
+}
+
+// =================================================
+// 3. SUBMISSION TABLE (Core Data & Editing)
+// =================================================
+model Submission {
+  id              String       @id @default(uuid())
+  language        String       @default("cpp") 
+  codeSnippet     String       @db.Text
+  notes           String?      @db.Text
+  status          Status       @default(SOLVED)
+  
+  // Per-user difficulty rating (0-10 scale, null = user did not rate)
+  // Problem.difficultyValue is the AVG of all non-null difficultyRating values.
+  difficultyRating Float?
+  
+  // Complex Data Types for CP Portfolios
+  tags            String[]     // e.g., ["Array", "Binary Search"] natively supported in Postgres
+  timeComplexity  String?      // e.g., "O(N)" (For future Edit updates)
+  spaceComplexity String?      // e.g., "O(1)" (For future Edit updates)
+  
+  // Timestamps
+  createdAt       DateTime     @default(now()) // Original solve date (constant)
+  updatedAt       DateTime     @updatedAt      // Tracks when edits occur
+
+  // Foreign Keys (Cascading ensures if a user is deleted, their code is too)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  problemSlug     String
+  problem         Problem      @relation(fields: [problemSlug], references: [slug], onDelete: Cascade)
+
+  // Relationships
+  comments        Comment[]
+  history         SubmissionHistory[]
+
+  // PERFORMANCE INDEXES: These make the Archive Search lightning fast
+  @@index([userId])
+  @@index([problemSlug])
+  @@index([tags]) 
+  @@index([createdAt]) // Speeds up the Heatmap/Contribution graph queries
+  @@index([userId, createdAt]) // Compound: Dashboard queries (user's submissions by date)
+  @@index([problemSlug, createdAt]) // Compound: Problem page queries (all submissions for a problem)
+}
+
+// =================================================
+// 4. COMMENT TABLE (Community Discussion)
+// =================================================
+model Comment {
+  id            String       @id @default(uuid())
+  content       String       @db.Text
+  createdAt     DateTime     @default(now())
+  
+  // Foreign Keys
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  submissionId  String
+  submission    Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId]) // Fast lookup for comments on a specific submission
+}
+
+// =================================================
+// 5. SUBMISSION HISTORY (Audit Log & Security)
+// =================================================
+model SubmissionHistory {
+  id            String       @id @default(uuid())
+  oldCode       String       @db.Text
+  oldNotes      String?      @db.Text
+  changedAt     DateTime     @default(now())
+  
+  // Foreign Keys
+  submissionId  String
+  submission    Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId]) // Fast lookup for version history
+}

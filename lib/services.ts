@@ -46,7 +46,7 @@ async function fetchLeetCodeData(slug: string): Promise<ProblemMetadata | null> 
     return {
       realTitle: `${q.questionId}. ${q.title}`, // Format: "1. Two Sum"
       difficultyLabel: q.difficulty, // "Easy", "Medium", "Hard"
-      tags: q.topicTags.map((t: any) => t.name),
+      tags: q.topicTags.map((t: { name: string }) => t.name),
     };
   } catch (error) {
     console.error("LeetCode Fetch Error:", error);
@@ -67,7 +67,7 @@ async function fetchCodeforcesData(contestId: string, index: string): Promise<Pr
     if (data.status !== "OK") return null;
 
     // Find the specific problem in the contest
-    const problem = data.result.problems.find((p: any) => p.index === index);
+    const problem = data.result.problems.find((p: { index: string }) => p.index === index);
 
     if (!problem) return null;
 

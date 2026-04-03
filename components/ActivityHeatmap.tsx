@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { toISTDateString } from "@/lib/date";
 
 interface Props {
   activityMap: Record<string, number>;
@@ -15,7 +16,7 @@ export function ActivityHeatmap({ activityMap }: Props) {
     for (let i = 364; i >= 0; i--) {
       const d = new Date();
       d.setDate(today.getDate() - i);
-      days.push(d.toISOString().split("T")[0]);
+      days.push(toISTDateString(d));
     }
     return days;
   }, []);

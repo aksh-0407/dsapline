@@ -11,8 +11,8 @@ const REPO = process.env.GITHUB_REPO!;
 
 // --- TYPES ---
 export type FileResponse = {
-  content: any; // The parsed JSON or raw string
-  sha: string;  // The Fingerprint (Crucial for safety)
+  content: unknown;  // The parsed JSON or raw string
+  sha: string;       // The Fingerprint (Crucial for safety)
   exists: boolean;
 };
 
@@ -54,9 +54,9 @@ export async function getFile(path: string): Promise<FileResponse> {
       exists: true,
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If file doesn't exist, return a clean "Empty" response instead of crashing
-    if (error.status === 404) {
+    if ((error as { status?: number }).status === 404) {
       return { content: null, sha: "", exists: false };
     }
     throw error; // If it's a real error (like Bad Token), crash loudly
@@ -69,7 +69,7 @@ export async function getFile(path: string): Promise<FileResponse> {
  * @param content - The data to save
  * @param sha - (Optional) The SHA of the previous version. REQUIRED if updating.
  */
-export async function saveFile(path: string, content: any, sha?: string, message?: string) {
+export async function saveFile(path: string, content: unknown, sha?: string, message?: string) {
   
   // 1. Prepare Content: Convert JSON back to string if needed
   const contentString = typeof content === 'string' 

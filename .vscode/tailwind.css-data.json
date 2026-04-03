@@ -1,0 +1,45 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Tailwind CSS v4: Defines design tokens (colors, spacing, fonts, etc.) as CSS custom properties. Replaces `tailwind.config.js` theme section in Tailwind v4+.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs — Theme Variables",
+          "url": "https://tailwindcss.com/docs/theme"
+        }
+      ]
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind CSS v4: Registers a custom utility class.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs — Adding Custom Utilities",
+          "url": "https://tailwindcss.com/docs/adding-custom-styles"
+        }
+      ]
+    },
+    {
+      "name": "@variant",
+      "description": "Tailwind CSS v4: Defines a custom variant.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs — Adding Custom Variants",
+          "url": "https://tailwindcss.com/docs/adding-custom-styles"
+        }
+      ]
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind CSS v4: Tells Tailwind where to scan for class names.",
+      "references": [
+        {
+          "name": "Tailwind CSS v4 Docs — Content Configuration",
+          "url": "https://tailwindcss.com/docs/content-configuration"
+        }
+      ]
+    }
+  ]
+}

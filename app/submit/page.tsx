@@ -7,7 +7,6 @@ export default async function SubmitPage() {
   if (!userId) redirect("/sign-in");
 
   return (
-    // CHANGED: bg-gray-50 -> bg-gray-950 to match the dark theme
     <div className="min-h-screen bg-gray-950 py-12">
        <SubmitForm />
     </div>

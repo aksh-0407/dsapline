@@ -12,10 +12,9 @@ import { usePathname } from "next/navigation";
 import { Code2, LayoutDashboard, Trophy, Archive, PlusCircle, Menu, X } from "lucide-react";
 import { useState } from "react";
 
-// FIXED: Using "export function" to match app/layout.tsx
 export function Navbar() {
   const pathname = usePathname();
-  const { user, isLoaded } = useUser();
+  useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => pathname === path;
