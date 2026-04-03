@@ -249,13 +249,13 @@ dsapline/
 
 | Member | Role | Responsibility |
 |--------|------|---------------|
-| **Aksh** | Lead Architect | Database schema design, ER diagram, Archive page, Problem-centric views |
-| **Vedant** | Submissions | Submission form UI/UX, edit capabilities, comments/discussion system |
-| **Avani** | Users/Auth | Clerk ↔ SQL user sync, profile management, connection pooling |
-| **Bhoju** | Security/History | Audit log (`SubmissionHistory`), ownership guards, SQL injection prevention |
-| **Melinkeri** | Search/Indexing | B-Tree & GIN indexes, compound indexes, query optimisation |
-| **Kushwaha** | Dashboard | Aggregation queries (GROUP BY, COUNT, MAX), streak algorithms, heatmap data |
-| **Aarrush** | QA/DevOps | ETL migration (JSON→SQL), load testing, documentation, integration testing |
+| **Aksh Shah** | Lead Architect | Database schema design, ER diagram, Archive page, Problem-centric views |
+| **Vedant Vakharia** | Submissions | Submission form UI/UX, edit capabilities, comments/discussion system |
+| **Avani Gadkari** | Users/Auth | Clerk ↔ SQL user sync, profile management, connection pooling |
+| **Arjun Thakur** | Security/History | Audit log (`SubmissionHistory`), ownership guards, SQL injection prevention |
+| **Aditya Melinkeri** | Search/Indexing | B-Tree & GIN indexes, compound indexes, query optimisation |
+| **Aditya Kushwaha** | Dashboard | Aggregation queries (GROUP BY, COUNT, MAX), streak algorithms, heatmap data |
+| **Aarrush Dhumale** | QA/DevOps | ETL migration (JSON→SQL), load testing, documentation, integration testing |
 
 > See [`docs/`](./docs/) for detailed role descriptions, DBMS linkage, and viva preparation (35 Q&A).
 
