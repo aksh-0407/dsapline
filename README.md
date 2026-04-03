@@ -1,6 +1,6 @@
 # DSApline V2.0
 
-**Discipline + Alpine — Master Algorithms through Radical Accountability.**
+**DSA + Discipline — Master Data Structures & Algorithms through Discipline, Accountability and Collaborative Learning.**
 
 DSApline is a production-grade, full-stack web application that enables competitive programmers to track, archive, and analyse their coding journey across LeetCode, Codeforces, HackerRank, and GeeksforGeeks. Built on a PostgreSQL relational database with a 5-table normalised schema, it features editable submissions with version history, per-submission difficulty ratings, community difficulty averages, up to 10 alternate solutions per problem, problem-centric views, community discussions, and real-time analytics.
 
