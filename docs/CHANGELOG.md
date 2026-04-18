@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes to the DSApline project will be documented in this file.
+All notable changes to the DSApline project are documented in this file.
 
-## [2026-04-18] - Architecture Finalization & UX Enhancements
+## As of [2026-04-18] - Architecture Finalization & UX Enhancements
 
 ### Added
 - **Code Blocks in Comments**: Added `codeSnippet` and `codeLanguage` fields to the `Comment` schema, allowing users to share syntax-highlighted code blocks separately from prose in discussion threads.

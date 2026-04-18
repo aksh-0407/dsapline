@@ -2,7 +2,7 @@
 
 **DSA + Discipline — Master Data Structures & Algorithms through Discipline, Accountability and Collaborative Learning.**
 
-DSApline is a production-grade, full-stack web application that enables competitive programmers to track, archive, and analyse their coding journey across LeetCode, Codeforces, HackerRank, and GeeksforGeeks. Built on a PostgreSQL relational database with a 5-table normalised schema, it features editable submissions with version history, per-submission difficulty ratings, community difficulty averages, up to 10 alternate solutions per problem, problem-centric views, community discussions, and real-time analytics.
+DSApline is a production-grade, full-stack web application that enables competitive programmers to track, archive, and analyse their coding journey across LeetCode, Codeforces, HackerRank, and GeeksforGeeks. Built on a PostgreSQL relational database with a 6-table normalised schema, it features editable submissions with version history, per-submission difficulty ratings, community difficulty averages, up to 10 alternate solutions per problem, problem-centric views, community discussions, deduplicated metric tracking, and real-time analytics.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)
@@ -14,14 +14,15 @@ DSApline is a production-grade, full-stack web application that enables competit
 
 ## Key Features
 
-- **SQL-Backed Archive** — Search and filter all submissions by tag, difficulty, platform, date range, and user. Powered by PostgreSQL with B-Tree and GIN indexes for sub-50ms queries.
+- **Accurate Metric Architecture** — Distinct separation between submissions and canonical problems solved. Alternate solutions and re-submissions are intelligently grouped under a deduplicated `SolvedProblem` record, ensuring historical totals and dashboard streaks remain accurate without data inflation.
+- **SQL-Backed Archive** — Search and filter all submissions by tag, difficulty, platform, date range, and user. The archive relies on `lastAttemptedAt` from canonical solve records to bubble active problems to the top, powered by PostgreSQL with B-Tree and GIN indexes for sub-50ms queries.
 - **Editable Submissions** — Edit your code, notes, tags, language, and difficulty rating after submission. Every edit creates an immutable audit trail in the `SubmissionHistory` table.
 - **Per-Submission Difficulty + Community Average** — Each user rates a problem on their own submission (0–10 scale). The problem's displayed difficulty is the live community average, computed as `AVG(difficultyRating)` across all rated submissions. Users who choose "Unrated" are excluded from the average.
 - **Up to 10 Alternate Solutions** — Submit up to 10 alternate approaches per problem (e.g., brute-force, optimised, recursive). Each alternate is stored as a full `Submission` row sharing the same problem and tags.
 - **Problem-Centric Views** — Browse `/problem/[slug]` to see all users' solutions for a specific problem, compare approaches, and discuss.
 - **Comment Discussions** — Threaded discussions on every submission. Users can post and edit their own comments.
 - **Dashboard Analytics** — Real-time stats: total solved, current streak, highest streak, activity heatmap (GitHub-style), and recent submissions. Computed via SQL aggregation queries.
-- **Leaderboard** — Ranking system by total problems solved and active streaks.
+- **Leaderboard** — Ranking system by total problems solved and active streaks. Granular streaming and optimized data-fetching patterns are used to eliminate layout blocking.
 - **Smart Auto-Fill** — Paste a LeetCode or Codeforces URL; the system auto-fetches the problem title, difficulty label, rating, and official tags via API enrichment (features a 1s debounce and 5s fetch timeout for platform resilience).
 - **Ownership Security** — Server-side ownership checks on all edit endpoints. Users cannot modify others' submissions or comments.
 
@@ -31,7 +32,7 @@ DSApline is a production-grade, full-stack web application that enables competit
 
 DSApline V2 uses a **Server Component-first** architecture where data-fetching happens on the server directly against PostgreSQL — no client-side API waterfalls.
 
-```
+```text
  Browser (React 19)           Server (Next.js 16)           Database (Neon.tech)
 ┌──────────────────┐    ┌────────────────────────┐    ┌──────────────────────┐
 │  Dashboard       │    │  Server Components     │    │    PostgreSQL 16     │
@@ -41,13 +42,16 @@ DSApline V2 uses a **Server Component-first** architecture where data-fetching h
 │                  │    │  /api/submit (POST)    │    │  └──┬───┘ └───┬───┘  │
 │  Client Comps:   │    │  /api/submission (PUT) │    │     │         │      │
 │  SubmitForm      │───▶│  /api/comments (CRUD)  │───▶│  ┌──▼─────────▼──┐   │
-│  EditSubmission  │    │                        │    │  │  Submission   │   │
-│  CommentSection  │    │  Prisma ORM            │    │  └──┬─────────┬──┘   │
-│  ArchiveFilters  │    │  (parameterised SQL)   │    │     │         │      │
-└──────────────────┘    └────────────────────────┘    │  ┌──▼──┐  ┌──▼───┐   │
+│  EditSubmission  │    │                        │    │  │ SolvedProblem │   │
+│  CommentSection  │    │  Prisma ORM            │    │  └──┬────────────┘   │
+│  ArchiveFilters  │    │  (parameterised SQL)   │    │     │                │
+└──────────────────┘    └────────────────────────┘    │  ┌──▼─────────┐      │
+                                                      │  │ Submission │      │
+        Clerk Auth (JWT / proxy.ts middleware)        │  └──┬────────┬┘      │
+        ──────────────────────────────────────        │  ┌──▼──┐  ┌──▼───┐   │
                                                       │  │Comm-│  │Hist- │   │
-        Clerk Auth (JWT / proxy.ts middleware)        │  │ent  │  │ory   │   │
-        ──────────────────────────────────────        │  └─────┘  └──────┘   │
+                                                      │  │ent  │  │ory   │   │
+                                                      │  └─────┘  └──────┘   │
                                                       └──────────────────────┘
 ```
 
@@ -58,17 +62,18 @@ DSApline V2 uses a **Server Component-first** architecture where data-fetching h
 3. `enrichProblemData(url)` calls LeetCode GraphQL / Codeforces REST API for metadata
 4. `prisma.user.upsert()` — ensures User exists in SQL (Clerk → DB sync)
 5. `prisma.problem.upsert()` — creates Problem if first time
-6. `prisma.submission.create()` — stores main solution with user's `difficultyRating`
-7. Loop: `prisma.submission.create()` × N — stores each alternate solution
-8. `recomputeProblemAvgDifficulty(slug)` — `AVG(difficultyRating)` → updates `Problem.difficultyValue`
-9. `prisma.user.update({ totalSolved: { increment: 1 } })` — atomic counter update
-10. Returns `{ success: true, id }` → client redirects to Dashboard
+6. `prisma.solvedProblem.upsert()` — creates or updates the canonical record for this user/problem. Updates `lastAttemptedAt`.
+7. `prisma.user.update()` — increments `totalSolved` ONLY if this is a first-time solve.
+8. `prisma.submission.create()` — stores main solution with user's `difficultyRating`, linked to the `SolvedProblem`
+9. Loop: `prisma.submission.create()` × N — stores each alternate solution
+10. `recomputeProblemAvgDifficulty(slug)` — `AVG(difficultyRating)` → updates `Problem.difficultyValue`
+11. Returns `{ success: true, id }` → client redirects to Dashboard
 
 ---
 
 ## Database Schema (ER Diagram)
 
-The database uses **5 tables** in **3NF** (Third Normal Form) with controlled denormalisation.
+The database uses **6 tables** in **3NF** (Third Normal Form) with controlled denormalisation.
 
 ```mermaid
 erDiagram
@@ -159,16 +164,19 @@ erDiagram
 | `Problem.difficultyValue` | Per problem | Community `AVG(difficultyRating)` — recomputed on every write |
 | `Problem.difficultyLabel` | Per problem | Platform label ("Easy"/"Medium"/"Hard") — from API enrichment |
 
-### Index Strategy (9 indexes)
+### Index Strategy (12 indexes)
 
 | Index | Type | Purpose |
 |-------|------|---------|
 | `Submission(userId)` | B-Tree | Filter by user |
 | `Submission(problemSlug)` | B-Tree | Filter by problem |
+| `Submission(solvedProblemId)` | B-Tree | Link submissions to canonical solve |
 | `Submission(tags)` | **GIN** | Array containment queries |
 | `Submission(createdAt)` | B-Tree | Date sort/range |
 | `Submission(userId, createdAt)` | B-Tree Compound | Dashboard queries |
 | `Submission(problemSlug, createdAt)` | B-Tree Compound | Problem page queries |
+| `SolvedProblem(problemSlug)` | B-Tree | Problem-centric aggregation |
+| `SolvedProblem(userId, lastAttemptedAt)` | B-Tree Compound | Archive feed ordering & re-submissions |
 | `Problem(platform)` | B-Tree | Platform filter |
 | `Comment(submissionId)` | B-Tree | Load comments |
 | `SubmissionHistory(submissionId)` | B-Tree | Load edit history |
@@ -213,7 +221,7 @@ erDiagram
 
 ## Project Structure
 
-```
+```text
 dsapline/
 ├── app/
 │   ├── api/
@@ -255,7 +263,8 @@ dsapline/
 │   ├── github.ts                    # GitHub API (used by migrate route only)
 │   └── utils.ts                     # Tailwind merge utility
 ├── prisma/
-│   └── schema.prisma                # Database schema (5 tables, 9 indexes)
+│   ├── schema.prisma                # Database schema (6 tables, 12 indexes)
+│   └── prisma.config.ts             # Prisma v7.6+ configuration file
 ├── docs/                            # DBMS documentation suite
 │   ├── 01_project_overview.md       # Architecture & tech justification
 │   └── 02_database_documentation.md # ER diagram, tables, SQL, ACID
@@ -325,10 +334,10 @@ This project covers the following DBMS concepts in a working production applicat
 | Normalisation (1NF → 3NF → BCNF) | Schema analysis in documentation |
 | Primary Keys (Natural vs Surrogate) | `Problem.slug` (natural), `Submission.id` (UUID surrogate) |
 | Foreign Keys & Referential Integrity | All tables linked via FK with CASCADE |
-| UPSERT (INSERT ON CONFLICT) | User sync, Problem creation |
-| B-Tree Indexes | 7 B-Tree indexes across tables |
+| UPSERT (INSERT ON CONFLICT) | User sync, Problem creation, SolvedProblem canonical tracking |
+| B-Tree Indexes | 11 B-Tree indexes across tables for instant lookups |
 | GIN Indexes | `Submission.tags` array column |
-| Compound Indexes | `(userId, createdAt)`, `(problemSlug, createdAt)` |
+| Compound Indexes | `(userId, createdAt)`, `(problemSlug, createdAt)`, `(userId, lastAttemptedAt)` |
 | SQL Injection Prevention | Prisma parameterised queries |
 | ACID Compliance | Transaction integrity across multi-step operations |
 | MVCC | Concurrent submission handling |
