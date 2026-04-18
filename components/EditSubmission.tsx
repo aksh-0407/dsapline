@@ -12,6 +12,7 @@ interface EditSubmissionProps {
   initialNotes: string;
   initialTags: string[];
   initialLanguage: string;
+  initialTitle: string | null;
   /** The user's personal difficulty rating for this submission (null = unrated). */
   initialDifficultyRating: number | null;
   /** The community average difficulty for this problem (shown read-only for context). */
@@ -39,6 +40,7 @@ export function EditSubmission({
   initialNotes,
   initialTags,
   initialLanguage,
+  initialTitle,
   initialDifficultyRating,
   communityAvgDifficulty,
   editCount,
@@ -53,11 +55,19 @@ export function EditSubmission({
   // Form state
   const [code, setCode] = useState(initialCode);
   const [notes, setNotes] = useState(initialNotes);
-  const [tags, setTags] = useState<string[]>(initialTags);
   const [language, setLanguage] = useState(initialLanguage);
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [difficultyRating, setDifficultyRating] = useState<number>(initialDifficultyRating ?? 5);
   const [isUnrated, setIsUnrated] = useState(initialDifficultyRating === null);
   const [customTag, setCustomTag] = useState("");
+
+  // R7 fix: Keep ALL tags in the pool (predefined + any that exist on the submission
+  // but aren't in the predefined list). Selected tags show with active styling.
+  // This mirrors the pattern fixed in SubmitForm.tsx.
+  const [allKnownTags, setAllKnownTags] = useState<string[]>(() =>
+    Array.from(new Set([...PREDEFINED_TAGS, ...initialTags]))
+  );
+  const [tags, setTags] = useState<string[]>(initialTags);
 
   // History state
   const [showHistory, setShowHistory] = useState(false);
@@ -74,6 +84,10 @@ export function EditSubmission({
     if (e.key === "Enter" && customTag.trim()) {
       e.preventDefault();
       const val = customTag.trim();
+      // Add to both the pool (if new) and the selected set
+      if (!allKnownTags.includes(val)) {
+        setAllKnownTags((prev) => [...prev, val]);
+      }
       if (!tags.includes(val)) setTags((prev) => [...prev, val]);
       setCustomTag("");
     }
@@ -93,6 +107,7 @@ export function EditSubmission({
           notes,
           tags,
           language,
+          title: title.trim() || null,   // Allow clearing the label
           difficultyRating: isUnrated ? null : difficultyRating,
         }),
       });
@@ -118,6 +133,7 @@ export function EditSubmission({
     setNotes(initialNotes);
     setTags(initialTags);
     setLanguage(initialLanguage);
+    setTitle(initialTitle ?? "");
     setDifficultyRating(initialDifficultyRating ?? 5);
     setIsUnrated(initialDifficultyRating === null);
     setError(null);
@@ -268,6 +284,21 @@ export function EditSubmission({
         </div>
       )}
 
+      {/* Solution Label / Title */}
+      <div>
+        <label className="block text-sm font-bold text-gray-300 mb-1">
+          Solution Label <span className="text-gray-600 font-normal text-xs">(optional, e.g. &quot;Optimized O(log n)&quot;)</span>
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full p-2.5 bg-gray-950 border border-gray-800 rounded-lg text-sm text-white focus:ring-1 focus:ring-blue-600 outline-none"
+          placeholder="Name this approach..."
+          maxLength={120}
+        />
+      </div>
+
       {/* Personal Difficulty Rating */}
       <div>
         <div className="flex items-center justify-between mb-1">
@@ -330,44 +361,42 @@ export function EditSubmission({
         />
       </div>
 
-      {/* Tags */}
+      {/* Tags — R7 fix: pool shows all tags with active state, none disappear */}
       <div>
         <label className="block text-sm font-bold text-gray-300 mb-3">
           <Tag size={14} className="inline mr-1" />
           Tags
         </label>
+        {/* Custom tag input */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="bg-blue-900/30 text-blue-300 border border-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2"
-            >
-              {tag}
-              <button type="button" onClick={() => toggleTag(tag)} className="hover:text-white">
-                <X size={14} />
-              </button>
-            </span>
-          ))}
           <input
             type="text"
             value={customTag}
             onChange={(e) => setCustomTag(e.target.value)}
             onKeyDown={addCustomTag}
             placeholder="+ New Tag (Enter)"
-            className="bg-transparent border-b border-gray-700 text-sm p-1 focus:border-blue-500 outline-none text-gray-300 w-32 placeholder-gray-600"
+            className="bg-transparent border-b border-gray-700 text-sm p-1 focus:border-blue-500 outline-none text-gray-300 w-40 placeholder-gray-600"
           />
         </div>
+        {/* Tag pool — all tags visible, selected ones highlighted */}
         <div className="flex flex-wrap gap-1.5">
-          {PREDEFINED_TAGS.filter((t) => !tags.includes(t)).map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => toggleTag(tag)}
-              className="text-xs px-2.5 py-1 rounded-full border bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 transition"
-            >
-              {tag}
-            </button>
-          ))}
+          {allKnownTags.map((tag) => {
+            const isSelected = tags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleTag(tag)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                  isSelected
+                    ? "bg-blue-600 border-blue-500 text-white font-semibold"
+                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500"
+                }`}
+              >
+                {isSelected && "✓ "}{tag}
+              </button>
+            );
+          })}
         </div>
       </div>
 

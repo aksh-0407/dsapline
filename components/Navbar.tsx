@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  UserButton, 
-  SignInButton, 
-  SignedIn, 
+import {
+  UserButton,
+  SignInButton,
+  SignedIn,
   SignedOut,
-  useUser 
+  useUser
 } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import { Code2, LayoutDashboard, Trophy, Archive, PlusCircle, Menu, X } from "lucide-react";
@@ -30,14 +30,14 @@ export function Navbar() {
     <nav className="border-b border-gray-800 bg-black/50 backdrop-blur-xl sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          
+
           {/* Logo - Always visible */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="bg-blue-600/20 p-2 rounded-lg group-hover:bg-blue-600/30 transition-colors">
               <Code2 className="text-blue-500" size={24} />
             </div>
             <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              DSAPline
+              DSApline
             </span>
           </Link>
 
@@ -48,11 +48,10 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive(link.href)
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isActive(link.href)
                       ? "bg-blue-600/10 text-blue-400"
                       : "text-gray-400 hover:text-gray-100 hover:bg-white/5"
-                  }`}
+                    }`}
                 >
                   {link.icon}
                   {link.name}
@@ -63,7 +62,7 @@ export function Navbar() {
 
           {/* Auth & Mobile Toggle Section */}
           <div className="flex items-center gap-4">
-            
+
             {/* If Signed Out: Show "Sign In" Button */}
             <SignedOut>
               <SignInButton mode="modal">
@@ -101,11 +100,10 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setIsMobileMenuOpen(false)} // Close menu when clicked
-                  className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${
-                    isActive(link.href)
+                  className={`flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium ${isActive(link.href)
                       ? "bg-blue-600/10 text-blue-400"
                       : "text-gray-400 hover:text-white hover:bg-white/5"
-                  }`}
+                    }`}
                 >
                   {link.icon}
                   {link.name}

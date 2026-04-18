@@ -1,5 +1,6 @@
 import prisma from "./prisma";
 import { IndexEntry } from "./types";
+import { mapSubmissionToIndexEntry } from "./archive";
 import { toISTDateString, todayIST, yesterdayIST } from "./date";
 
 export interface DashboardStats {
@@ -12,22 +13,26 @@ export interface DashboardStats {
 }
 
 export async function getDashboardData(userId: string): Promise<DashboardStats> {
-  // 1. Fetch all submissions for this user from SQL
-  const submissions = await prisma.submission.findMany({
+  // 1. totalSolved = unique SolvedProblem rows for this user
+  //    This is the canonical count — does NOT inflate for alternates/re-submits.
+  const totalSolved = await prisma.solvedProblem.count({ where: { userId } });
+
+  // 2. All submission timestamps for heatmap + streaks
+  //    ANY submission event (main, alternate, re-submission) marks that day active.
+  const allSubs = await prisma.submission.findMany({
     where: { userId },
-    include: { problem: true, user: true },
+    select: { createdAt: true },
     orderBy: { createdAt: "desc" },
   });
 
-  // 2. Generate Activity Map (DateString -> Count)
+  // 3. Generate Activity Map (DateString → Count)
   const activityMap: Record<string, number> = {};
-
-  submissions.forEach((sub) => {
+  allSubs.forEach((sub) => {
     const dateStr = toISTDateString(sub.createdAt);
     activityMap[dateStr] = (activityMap[dateStr] || 0) + 1;
   });
 
-  // 3. Calculate Streaks
+  // 4. Calculate Streaks
   const sortedDates = Object.keys(activityMap).sort();
 
   let currentStreak = 0;
@@ -46,7 +51,6 @@ export async function getDashboardData(userId: string): Promise<DashboardStats> 
       if (prevDate) {
         const diffTime = Math.abs(thisDate.getTime() - prevDate.getTime());
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
         if (diffDays === 1) {
           tempStreak++;
         } else {
@@ -61,13 +65,12 @@ export async function getDashboardData(userId: string): Promise<DashboardStats> 
     // --- B. Current Streak Calculation (Backward Check) ---
     let checkDate = new Date();
     const todayStr = todayIST();
+    const yestStr = yesterdayIST();
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yestStr = yesterdayIST();
 
     let streakIsAlive = false;
-
     if (activityMap[todayStr]) {
       streakIsAlive = true;
     } else if (activityMap[yestStr]) {
@@ -88,25 +91,19 @@ export async function getDashboardData(userId: string): Promise<DashboardStats> 
     }
   }
 
-  // 4. Prepare Recent Activity (top 5, mapped to IndexEntry shape)
-  const recentActivity: IndexEntry[] = submissions.slice(0, 5).map((sub) => ({
-    id: sub.id,
-    title: sub.problem.title,
-    difficulty: sub.problem.difficultyValue ?? 5, // community avg for display
-    difficultyRating: sub.difficultyRating,        // user's own rating
-    tags: sub.tags,
-    username: sub.user.fullName ?? sub.userId,
-    userId: sub.userId,
-    date: toISTDateString(sub.createdAt),
-    timestamp: sub.createdAt.toISOString(),
-    platform: sub.problem.platform as IndexEntry["platform"],
-    difficultyLabel: sub.problem.difficultyLabel ?? undefined,
-    rating: sub.problem.rating ?? undefined,
-  }));
+  // 5. Recent Activity — last 5 Submission events (any type)
+  //    Shows what the user has actually been coding recently.
+  const recentRaw = await prisma.submission.findMany({
+    where: { userId },
+    include: { problem: true, user: true },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+  });
 
+  const recentActivity: IndexEntry[] = recentRaw.map(mapSubmissionToIndexEntry);
 
   return {
-    totalSolved: submissions.length,
+    totalSolved,
     uniqueDays: sortedDates.length,
     currentStreak,
     highestStreak,

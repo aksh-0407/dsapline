@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { Plus, X, Upload, AlertCircle, Loader2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Plus, X, Upload, AlertCircle, Loader2, Sparkles,
+  ChevronDown, ChevronUp, Check, CheckCircle2
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const PREDEFINED_TAGS = [
@@ -19,11 +22,33 @@ interface AltSolution {
   code: string;
 }
 
+interface ExistingSolve {
+  id: string;
+  firstSolvedAt: string;   // ISO 8601
+  notes: string | null;
+  tags: string[];
+  difficultyRating: number | null;
+  problemSlug: string;
+}
+
+/** Returns a human-readable "N days ago" string from an ISO date. */
+function daysAgoLabel(isoDate: string): string {
+  const ms = Date.now() - new Date(isoDate).getTime();
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+}
+
 export function SubmitForm() {
   const { user } = useUser();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingMeta, setLoadingMeta] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
+
+  // Debounce timer ref for URL auto-enrichment
+  const enrichDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- FORM STATE ---
   const [url, setUrl] = useState("");
@@ -32,13 +57,23 @@ export function SubmitForm() {
   const [difficulty, setDifficulty] = useState(5.0);
   const [isUnrated, setIsUnrated] = useState(false);
 
+  // TAG STATE: allKnownTags = predefined + custom + auto-filled
+  // Selected tags are shown as active (not hidden) in the lower pool.
+  const [allKnownTags, setAllKnownTags] = useState<string[]>(PREDEFINED_TAGS);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
+
+  // Solution title (for re-submissions — labels the new solution approach)
+  const [solutionTitle, setSolutionTitle] = useState("");
 
   // Alternate solutions — dynamic list, max MAX_ALT_SOLUTIONS
   const [altSolutions, setAltSolutions] = useState<AltSolution[]>([]);
   const [altFilesRef, setAltFilesRef] = useState<Record<number, File | null>>({});
 
+  // RE-SUBMISSION STATE
+  const [existingSolve, setExistingSolve] = useState<ExistingSolve | null>(null);
+
+  // --- AUTO-FILL (on URL blur) ---
   const handleAutoFill = async () => {
     if (!url) return;
     setLoadingMeta(true);
@@ -46,19 +81,50 @@ export function SubmitForm() {
     try {
       const res = await fetch("/api/parse-url", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const { success, data } = await res.json();
+      const { success, data, existingSolve: existingSolveData } = await res.json();
 
-      if (success && data) {
-        if (data.tags && Array.isArray(data.tags)) {
-          const formattedTags = data.tags.map((t: string) =>
-            t.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      // Handle re-submission detection
+      if (existingSolveData) {
+        setExistingSolve(existingSolveData);
+
+        // Auto-fill tags from the existing solve (merge into allKnownTags + select them)
+        if (existingSolveData.tags?.length > 0) {
+          const normalized: string[] = existingSolveData.tags.map((t: string) =>
+            t.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
           );
-          setSelectedTags((prev) => Array.from(new Set([...prev, ...formattedTags])));
+          setAllKnownTags((prev) => {
+            const merged = [...prev];
+            normalized.forEach((t) => { if (!merged.includes(t)) merged.push(t); });
+            return merged;
+          });
+          setSelectedTags((prev) => Array.from(new Set([...prev, ...normalized])));
         }
 
-        if (!isUnrated) {
+        // Auto-fill difficulty rating
+        if (!isUnrated && existingSolveData.difficultyRating !== null) {
+          setDifficulty(existingSolveData.difficultyRating);
+        }
+      } else {
+        setExistingSolve(null);
+      }
+
+      // Also handle platform enrichment tags
+      if (success && data?.tags && Array.isArray(data.tags)) {
+        const formattedTags = data.tags.map((t: string) =>
+          t.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())
+        );
+        setAllKnownTags((prev) => {
+          const merged = [...prev];
+          formattedTags.forEach((t: string) => { if (!merged.includes(t)) merged.push(t); });
+          return merged;
+        });
+        setSelectedTags((prev) => Array.from(new Set([...prev, ...formattedTags])));
+
+        // Apply platform difficulty hint (only if not already set from existingSolve)
+        if (!isUnrated && !existingSolveData?.difficultyRating) {
           if (data.difficultyLabel === "Easy") setDifficulty(3);
           else if (data.difficultyLabel === "Medium") setDifficulty(6);
           else if (data.difficultyLabel === "Hard") setDifficulty(9);
@@ -85,9 +151,9 @@ export function SubmitForm() {
     if (e.key === "Enter" && customTag.trim()) {
       e.preventDefault();
       const val = customTag.trim();
-      if (!selectedTags.includes(val)) {
-        setSelectedTags((prev) => [...prev, val]);
-      }
+      // Add to both allKnownTags (pool) and selectedTags (selected)
+      setAllKnownTags((prev) => (prev.includes(val) ? prev : [...prev, val]));
+      setSelectedTags((prev) => (prev.includes(val) ? prev : [...prev, val]));
       setCustomTag("");
     }
   };
@@ -120,9 +186,10 @@ export function SubmitForm() {
   // --- SUBMIT LOGIC ---
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setInlineError(null);
 
     if (selectedTags.length === 0) {
-      alert("Please select at least one tag.");
+      setInlineError("Please select at least one tag.");
       return;
     }
 
@@ -130,7 +197,7 @@ export function SubmitForm() {
     if (fileInput?.files?.length) {
       const file = fileInput.files[0];
       if (file.size > 1 * 1024 * 1024) {
-        alert("File is too large! Max size is 1MB.");
+        setInlineError("File is too large! Max size is 1 MB.");
         return;
       }
     }
@@ -143,10 +210,13 @@ export function SubmitForm() {
       // Tags
       formData.set("tags", JSON.stringify(selectedTags));
 
+      // Solution title
+      if (solutionTitle.trim()) {
+        formData.set("solutionTitle", solutionTitle.trim());
+      }
+
       // Personal difficulty rating
       if (isUnrated) {
-        formData.delete("difficulty");
-        // Send -1 to signal unrated; API will convert to null
         formData.set("difficulty", "-1");
       }
 
@@ -178,11 +248,20 @@ export function SubmitForm() {
       router.refresh();
     } catch (error: unknown) {
       console.error(error);
-      alert((error as Error).message || "Something went wrong. Check console.");
+      setInlineError((error as Error).message || "Something went wrong. Check console.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Auto-dismiss inline error after 6 seconds
+  useEffect(() => {
+    if (!inlineError) return;
+    const t = setTimeout(() => setInlineError(null), 6000);
+    return () => clearTimeout(t);
+  }, [inlineError]);
+
+  const isResubmission = !!existingSolve;
 
   return (
     <div className="max-w-4xl mx-auto p-6 text-gray-100">
@@ -190,19 +269,35 @@ export function SubmitForm() {
       {/* Header */}
       <div className="mb-8 border-b border-gray-800 pb-6">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-          New Submission
+          {isResubmission ? "Add a New Solution" : "New Submission"}
         </h1>
         <p className="text-gray-400 mt-2 flex items-center gap-2">
           <span className="bg-gray-800 text-xs px-2 py-1 rounded-full border border-gray-700">
             {user?.firstName || "User"}
           </span>
-          creating a record.
+          {isResubmission ? "adding another approach." : "creating a record."}
         </p>
       </div>
 
       <form className="space-y-8" onSubmit={handleSubmit}>
 
-        {/* 1. Problem Link */}
+        {/* Inline error banner (replaces browser alert()) */}
+        {inlineError && (
+          <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-red-900/20 border border-red-800/50 text-red-400 text-sm animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0" />
+              {inlineError}
+            </div>
+            <button
+              type="button"
+              onClick={() => setInlineError(null)}
+              className="text-red-500 hover:text-red-300 transition"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
           <label className="block text-sm font-bold text-gray-300 mb-2 flex justify-between">
             <span>Problem Link <span className="text-red-500">*</span></span>
@@ -217,7 +312,17 @@ export function SubmitForm() {
               name="url"
               type="url"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                const newUrl = e.target.value;
+                setUrl(newUrl);
+                setExistingSolve(null);
+
+                // R3: Auto-enrich after 1 second of inactivity
+                if (enrichDebounceRef.current) clearTimeout(enrichDebounceRef.current);
+                if (newUrl.trim()) {
+                  enrichDebounceRef.current = setTimeout(() => handleAutoFill(), 1000);
+                }
+              }}
               onBlur={handleAutoFill}
               placeholder="https://leetcode.com/problems/..."
               className="w-full p-4 bg-gray-950 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition text-blue-400 placeholder-gray-600 pr-10"
@@ -227,6 +332,18 @@ export function SubmitForm() {
               {loadingMeta ? <Loader2 className="animate-spin text-blue-500" size={20} /> : <Sparkles size={18} />}
             </div>
           </div>
+
+          {/* Re-submission info strip — soft, non-alarming */}
+          {isResubmission && existingSolve && (
+            <div className="mt-3 flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-950/40 border border-emerald-800/50">
+              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+              <span className="text-sm text-emerald-300">
+                You solved this{" "}
+                <span className="font-semibold">{daysAgoLabel(existingSolve.firstSolvedAt)}</span>
+                {" · "}Adding a new solution
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 2. Personal Difficulty Rating */}
@@ -281,6 +398,7 @@ export function SubmitForm() {
             Tags <span className="text-red-500">*</span>
           </label>
 
+          {/* Selected tags shown as chips */}
           <div className="flex flex-wrap gap-2 mb-4">
             {selectedTags.map((tag) => (
               <span
@@ -303,28 +421,53 @@ export function SubmitForm() {
             />
           </div>
 
+          {/* Tag pool — shows ALL known tags; selected ones show with ✓ (not hidden) */}
           <div className="flex flex-wrap gap-2">
-            {PREDEFINED_TAGS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => toggleTag(tag)}
-                className={`text-xs px-3 py-1 rounded-full border transition-all ${
-                  selectedTags.includes(tag)
-                    ? "bg-blue-600 border-blue-500 text-white hidden"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500"
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
+            {allKnownTags.map((tag) => {
+              const isSelected = selectedTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={`text-xs px-3 py-1 rounded-full border transition-all flex items-center gap-1 ${
+                    isSelected
+                      ? "bg-blue-600/20 border-blue-500 text-blue-300"
+                      : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500"
+                  }`}
+                >
+                  {isSelected && <Check size={10} />}
+                  {tag}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* 4. Main Solution Code */}
+        {/* 4. Solution Title (shown for re-submissions or as optional label) */}
+        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
+          <label className="block text-sm font-bold text-gray-300 mb-2">
+            Solution Title{" "}
+            <span className="text-gray-500 font-normal text-xs">
+              {isResubmission ? "(label for this new approach)" : "(optional label)"}
+            </span>
+          </label>
+          <input
+            type="text"
+            value={solutionTitle}
+            onChange={(e) => setSolutionTitle(e.target.value)}
+            placeholder={isResubmission ? "e.g. Optimized O(log n), BFS Variant..." : "e.g. Sliding Window Approach (optional)"}
+            className="w-full p-4 bg-gray-950 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition text-gray-200 placeholder-gray-600"
+          />
+        </div>
+
+        {/* 5. Main Solution Code */}
         <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
           <div className="flex items-center justify-between mb-4">
-            <label className="text-sm font-bold text-gray-300">Solution Code <span className="text-red-500">*</span></label>
+            <label className="text-sm font-bold text-gray-300">
+              {isResubmission ? "New Solution Code" : "Solution Code"}{" "}
+              <span className="text-red-500">*</span>
+            </label>
             <div className="flex bg-gray-800 rounded-lg p-1">
               <button
                 type="button"
@@ -348,7 +491,7 @@ export function SubmitForm() {
               name="code"
               rows={12}
               className="w-full p-4 font-mono text-sm bg-black text-emerald-400 border border-gray-800 rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none"
-              placeholder="// Paste your main solution here..."
+              placeholder={isResubmission ? "// Paste your new solution here..." : "// Paste your main solution here..."}
               required={activeTab === "paste"}
             />
           ) : (
@@ -363,7 +506,7 @@ export function SubmitForm() {
           )}
         </div>
 
-        {/* 5. Alternate Solutions */}
+        {/* 6. Alternate Solutions */}
         <div className="border border-gray-800 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between p-4 bg-gray-900">
             <span className="font-semibold text-gray-300 flex items-center gap-2">
@@ -406,7 +549,7 @@ export function SubmitForm() {
           ))}
         </div>
 
-        {/* 6. Notes / Learnings */}
+        {/* 7. Notes / Learnings */}
         <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-800">
           <label className="block text-sm font-bold text-gray-300 mb-2">
             Notes / Learnings
@@ -414,6 +557,7 @@ export function SubmitForm() {
           <textarea
             name="notes"
             rows={3}
+            defaultValue={isResubmission && existingSolve?.notes ? existingSolve.notes : ""}
             className="w-full p-4 font-sans text-sm bg-gray-950 border border-gray-800 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none text-gray-300 placeholder-gray-600"
             placeholder="Key takeaway: Used a HashMap to optimize lookup to O(1)..."
           />
@@ -431,7 +575,7 @@ export function SubmitForm() {
             </span>
           ) : (
             <>
-              <span>Confirm Submission</span>
+              <span>{isResubmission ? "Add Solution" : "Confirm Submission"}</span>
               <AlertCircle size={16} className="opacity-50" />
             </>
           )}

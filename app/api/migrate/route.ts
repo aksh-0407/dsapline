@@ -48,7 +48,8 @@ interface UserJson {
 // HELPERS
 // ======================================================================
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const DATA_DIR = /* turbopackIgnore: true */ require("path").join(process.cwd(), "data");
 
 /** Read a local JSON file, return parsed content or null. */
 async function readLocalJson<T>(filePath: string): Promise<T | null> {
@@ -115,7 +116,6 @@ function calculateStreaks(dates: string[]): { currentStreak: number; maxStreak: 
   const mostRecent = sortedDesc[0];
 
   if (mostRecent === today || mostRecent === yesterday) {
-    // Walk backwards through sorted desc dates
     const checkDate = new Date(mostRecent + "T12:00:00Z");
     for (const dateStr of sortedDesc) {
       const expected = toISTDateString(checkDate);
@@ -149,7 +149,7 @@ async function computeProblemAvgDifficulty(problemSlug: string): Promise<number 
 
 export async function POST(req: Request) {
   try {
-    // --- Auth guard ---
+    // --- Auth + secret guard ---
     const { userId } = await auth();
     if (!userId && process.env.NODE_ENV !== "development") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -163,6 +163,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // MIGRATE_SECRET guard — prevents anyone with the hardcoded confirm string
+    // from wiping the database in production. Set this env var in .env.local and
+    // in the Vercel dashboard before running the migration.
+    const migrateSecret = process.env.MIGRATE_SECRET;
+    if (migrateSecret && body.secret !== migrateSecret) {
+      return NextResponse.json(
+        { error: "Invalid migration secret. Check MIGRATE_SECRET env var." },
+        { status: 403 }
+      );
+    }
+
     console.log(`\n=== MIGRATION triggered by ${userId} ===\n`);
 
     // ==================================================================
@@ -172,6 +183,7 @@ export async function POST(req: Request) {
     await prisma.submissionHistory.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.submission.deleteMany();
+    await prisma.solvedProblem.deleteMany();
     await prisma.problem.deleteMany();
     await prisma.user.deleteMany();
     console.log("  ✓ All tables cleared.\n");
@@ -188,6 +200,7 @@ export async function POST(req: Request) {
     const stats = {
       users: 0,
       problems: 0,
+      solvedProblems: 0,
       mainSubmissions: 0,
       altSubmissions: 0,
       codeFound: 0,
@@ -197,34 +210,37 @@ export async function POST(req: Request) {
     // ==================================================================
     // STEP 2: COMPUTE USER STATS FROM INDEX
     //
-    // KEY FIX: totalSolved = number of index entries per user.
-    //          Alternates do NOT count as separate solved problems.
-    //          Streaks are computed from unique dates in this user's entries.
+    // totalSolved = number of UNIQUE (userId, problemSlug) pairs.
+    // Streaks are computed from unique dates in this user's entries.
     // ==================================================================
     const userMap: Record<
       string,
-      { username: string; dates: string[]; total: number; earliestTimestamp: string }
+      { username: string; dates: string[]; slugs: Set<string>; earliestTimestamp: string }
     > = {};
 
     for (const entry of indexData) {
+      const slug = entry.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
       if (!userMap[entry.userId]) {
         userMap[entry.userId] = {
           username: entry.username,
           dates: [],
-          total: 0,
+          slugs: new Set(),
           earliestTimestamp: entry.timestamp || entry.date,
         };
       }
       const u = userMap[entry.userId];
-      u.total += 1; // Each index entry = 1 problem solved
       u.dates.push(entry.date);
-      // Track earliest
+      u.slugs.add(slug); // unique problem slugs
       if (new Date(entry.timestamp || entry.date) < new Date(u.earliestTimestamp)) {
         u.earliestTimestamp = entry.timestamp || entry.date;
       }
     }
 
-    // Enrich usernames from user JSON files (more complete names)
+    // Enrich usernames from user JSON files
     const enrichedNames: Record<string, string> = {};
     for (const uid of Object.keys(userMap)) {
       const userFile = await readLocalJson<UserJson>(
@@ -239,13 +255,14 @@ export async function POST(req: Request) {
     for (const [uid, data] of Object.entries(userMap)) {
       const { currentStreak, maxStreak } = calculateStreaks(data.dates);
       const displayName = enrichedNames[uid] || data.username;
+      const totalSolved = data.slugs.size; // unique problems, not raw entry count
 
       await prisma.user.create({
         data: {
           id: uid,
           email: `${uid}@migrated.dsapline`,
           fullName: displayName,
-          totalSolved: data.total, // ← correct: index entry count
+          totalSolved,
           currentStreak,
           maxStreak,
           createdAt: new Date(data.earliestTimestamp),
@@ -253,7 +270,7 @@ export async function POST(req: Request) {
       });
       stats.users++;
       console.log(
-        `  User: ${displayName} | solved: ${data.total} | streak: ${currentStreak}/${maxStreak}`
+        `  User: ${displayName} | solved: ${totalSolved} | streak: ${currentStreak}/${maxStreak}`
       );
     }
     console.log(`  ✓ ${stats.users} users created.\n`);
@@ -276,10 +293,10 @@ export async function POST(req: Request) {
         data: {
           slug,
           title: entry.title,
-          difficultyValue: null, // Will be recomputed after all submissions are created
+          difficultyValue: null, // Recomputed after all submissions
           difficultyLabel: entry.difficultyLabel || null,
           platform: entry.platform || "other",
-          url: null, // Will be populated from detail JSON below
+          url: null, // Populated from detail JSON below
           rating: entry.rating || null,
         },
       });
@@ -288,13 +305,22 @@ export async function POST(req: Request) {
     console.log(`  ✓ ${stats.problems} problems created.\n`);
 
     // ==================================================================
-    // STEP 4: CREATE SUBMISSIONS + ALTERNATES
+    // STEP 4: CREATE SOLVED PROBLEMS + SUBMISSIONS
     //
-    // KEY FIX: Each index entry produces exactly 1 main Submission.
-    //          If the detail JSON has `alternateSolution`, an additional
-    //          Submission row is created as an alternate — but it does NOT
-    //          affect totalSolved counts (those are already set from Step 2).
+    // For each index entry:
+    //   a. UPSERT SolvedProblem { userId, problemSlug }
+    //      - firstSolvedAt = entry.timestamp (only set on INSERT)
+    //      - tags/notes/difficultyRating from detail JSON
+    //   b. Create main Submission { isMainSolution: true }
+    //   c. If alternateSolution present → Create alt Submission { isMainSolution: false }
+    //
+    // Because index.json has exactly one entry per original solve event,
+    // each entry naturally maps to a unique SolvedProblem.
     // ==================================================================
+
+    // Track SolvedProblem ids by (userId, slug) so we can link submissions
+    const solvedProblemCache = new Map<string, string>(); // `${userId}:${slug}` → sp.id
+
     for (const entry of indexData) {
       const slug = entry.title
         .toLowerCase()
@@ -316,6 +342,87 @@ export async function POST(req: Request) {
       );
 
       const detail = await readLocalJson<SubmissionDetail>(detailJsonPath);
+
+      // --- Difficulty handling ---
+      const rawDiff = detail?.difficulty ?? entry.difficulty;
+      const difficultyRating =
+        typeof rawDiff === "number" && rawDiff >= 0 && rawDiff <= 10 ? rawDiff : null;
+
+      // --- Enrich Problem with URL and difficultyLabel from detail ---
+      if (detail?.question?.url || detail?.enrichment?.difficultyLabel) {
+        await prisma.problem.update({
+          where: { slug },
+          data: {
+            url: detail?.question?.url || undefined,
+            difficultyLabel: detail?.enrichment?.difficultyLabel || undefined,
+          },
+        });
+      }
+
+      // --- Upsert SolvedProblem ---
+      const spKey = `${entry.userId}:${slug}`;
+      let spId = solvedProblemCache.get(spKey);
+      const isFirstTimeSeen = !spId;
+
+      if (isFirstTimeSeen) {
+        // First time we see this (userId, slug) pair → CREATE
+        const sp = await prisma.solvedProblem.create({
+          data: {
+            userId: entry.userId,
+            problemSlug: slug,
+            firstSolvedAt: dateObj,
+            lastAttemptedAt: dateObj,  // Set historically; we own this field now
+            notes: detail?.notes || null,
+            tags: detail?.tags || entry.tags || [],
+            difficultyRating,
+          },
+        });
+        spId = sp.id;
+        solvedProblemCache.set(spKey, spId);
+        stats.solvedProblems++;
+      } else {
+        // ── DUPLICATE ENTRY (same userId + slug, appears again in index.json) ──
+        // Merge strategy (industry-standard, no data loss):
+        //   • tags           → set UNION (keep all unique tags)
+        //   • notes          → APPEND if new notes differ (preserve all learnings)
+        //   • difficulty     → LATEST entry wins (most recent assessment is most accurate)
+        //   • firstSolvedAt  → never updated (set on CREATE, immutable)
+        //   • lastAttemptedAt → take MAX(existing, incoming) — most recent date wins
+
+        const existing = await prisma.solvedProblem.findUnique({
+          where: { id: spId },
+          select: { notes: true, tags: true, lastAttemptedAt: true },
+        });
+
+        // Tag union: merge existing + new tags, deduplicated
+        const existingTags = existing?.tags ?? [];
+        const newTags = detail?.tags || entry.tags || [];
+        const mergedTags = Array.from(new Set([...existingTags, ...newTags]));
+
+        // Notes: append if new notes exist and differ from existing
+        let mergedNotes = existing?.notes || null;
+        const incomingNotes = detail?.notes?.trim() || null;
+        if (incomingNotes && incomingNotes !== mergedNotes) {
+          mergedNotes = mergedNotes
+            ? `${mergedNotes}\n---\n${incomingNotes}`
+            : incomingNotes;
+        }
+
+        // lastAttemptedAt: keep the later of the two dates
+        const currentLast = existing?.lastAttemptedAt ?? new Date(0);
+        const newLastAttemptedAt = dateObj > currentLast ? dateObj : currentLast;
+
+        await prisma.solvedProblem.update({
+          where: { id: spId },
+          data: {
+            tags: mergedTags,
+            notes: mergedNotes,
+            lastAttemptedAt: newLastAttemptedAt,
+            // Latest difficulty wins — most recent understanding is most accurate
+            difficultyRating: difficultyRating ?? undefined,
+          },
+        });
+      }
 
       // --- Read main code ---
       let mainCode = "// Code snippet could not be retrieved.";
@@ -348,37 +455,35 @@ export async function POST(req: Request) {
         }
       }
 
-      // --- Difficulty handling ---
-      // In old data, difficulty = -1 means unrated → store as null
-      const rawDiff = detail?.difficulty ?? entry.difficulty;
-      const difficultyRating =
-        typeof rawDiff === "number" && rawDiff >= 0 && rawDiff <= 10
-          ? rawDiff
-          : null;
-
-      // --- Enrich Problem with URL and difficultyLabel from detail ---
-      if (detail?.question?.url || detail?.enrichment?.difficultyLabel) {
-        await prisma.problem.update({
-          where: { slug },
-          data: {
-            url: detail?.question?.url || undefined,
-            difficultyLabel: detail?.enrichment?.difficultyLabel || undefined,
-          },
-        });
-      }
-
       // --- Create main submission ---
+      // First occurrence → isMainSolution: true; subsequent → false
+      const isMainSolution = isFirstTimeSeen;
+
+      // Determine a meaningful title for non-main submissions
+      const submissionTitle = isMainSolution
+        ? null
+        : (() => {
+            if (detail?.alternateSolution?.label) return detail.alternateSolution.label;
+            const notesTrimmed = detail?.notes?.trim();
+            if (notesTrimmed) return notesTrimmed.slice(0, 60) + (notesTrimmed.length > 60 ? "…" : "");
+            const d = new Date(entry.timestamp || entry.date);
+            return `Re-submission (${d.toISOString().slice(0, 10)})`;
+          })();
+
       await prisma.submission.create({
         data: {
           id: entry.id,
           language: mainExt,
           codeSnippet: mainCode,
           notes: detail?.notes || null,
+          title: submissionTitle,
           status: "SOLVED",
           tags: detail?.tags || entry.tags || [],
           difficultyRating,
+          isMainSolution,
           userId: entry.userId,
           problemSlug: slug,
+          solvedProblemId: spId!,
           createdAt: dateObj,
         },
       });
@@ -395,12 +500,15 @@ export async function POST(req: Request) {
             id: `${entry.id}-alt`,
             language: altExt,
             codeSnippet: altContent,
-            notes: detail.alternateSolution.label || "Alternate Solution",
+            title: detail.alternateSolution.label || "Alternate Solution",
+            notes: null,
             status: "SOLVED",
             tags: detail?.tags || entry.tags || [],
-            difficultyRating, // Same difficulty rating as main solution
+            difficultyRating,
+            isMainSolution: false,
             userId: entry.userId,
             problemSlug: slug,
+            solvedProblemId: spId!,
             createdAt: dateObj,
           },
         });
@@ -408,6 +516,9 @@ export async function POST(req: Request) {
       }
     }
 
+    console.log(
+      `  ✓ ${stats.solvedProblems} SolvedProblem rows created.`
+    );
     console.log(
       `  ✓ ${stats.mainSubmissions} main submissions + ${stats.altSubmissions} alternates created.`
     );
@@ -417,9 +528,6 @@ export async function POST(req: Request) {
 
     // ==================================================================
     // STEP 5: RECOMPUTE Problem.difficultyValue FOR ALL PROBLEMS
-    //
-    // After all submissions are in, compute the community average for
-    // each problem as AVG(difficultyRating) across rated submissions.
     // ==================================================================
     let problemsUpdated = 0;
     for (const slug of problemCache.keys()) {
@@ -435,11 +543,32 @@ export async function POST(req: Request) {
     console.log(`  ✓ Recomputed average difficulty for ${problemsUpdated} problems.\n`);
 
     // ==================================================================
+    // STEP 6: RECOMPUTE user.totalSolved FROM SolvedProblem COUNT
+    //
+    // Belt-and-suspenders: recompute totalSolved from the actual
+    // SolvedProblem rows to ensure perfect accuracy regardless of
+    // any edge cases in Step 2.
+    // ==================================================================
+    const grouped = await prisma.solvedProblem.groupBy({
+      by: ["userId"],
+      _count: { id: true },
+    });
+
+    for (const row of grouped) {
+      await prisma.user.update({
+        where: { id: row.userId },
+        data: { totalSolved: row._count.id },
+      });
+    }
+    console.log(`  ✓ Recomputed totalSolved for ${grouped.length} users.\n`);
+
+    // ==================================================================
     // SUMMARY
     // ==================================================================
     const summary = {
       users: stats.users,
       problems: stats.problems,
+      solvedProblems: stats.solvedProblems,
       mainSubmissions: stats.mainSubmissions,
       altSubmissions: stats.altSubmissions,
       totalSubmissionRows: stats.mainSubmissions + stats.altSubmissions,

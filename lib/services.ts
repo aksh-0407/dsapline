@@ -36,6 +36,7 @@ async function fetchLeetCodeData(slug: string): Promise<ProblemMetadata | null> 
         `,
         variables: { titleSlug: slug },
       }),
+      signal: AbortSignal.timeout(5000),
     });
 
     const data = await response.json();
@@ -49,10 +50,15 @@ async function fetchLeetCodeData(slug: string): Promise<ProblemMetadata | null> 
       tags: q.topicTags.map((t: { name: string }) => t.name),
     };
   } catch (error) {
-    console.error("LeetCode Fetch Error:", error);
+    if (error instanceof Error && error.name === "TimeoutError") {
+      console.warn("LeetCode API timed out after 5s");
+    } else {
+      console.error("LeetCode Fetch Error:", error);
+    }
     return null;
   }
 }
+
 
 /**
  * 2. CODEFORCES FETCHER (via API)
@@ -61,7 +67,7 @@ async function fetchCodeforcesData(contestId: string, index: string): Promise<Pr
   try {
     // We use contest.standings because it's lighter than fetching the whole problemset
     const url = `https://codeforces.com/api/contest.standings?contestId=${contestId}&from=1&count=1`;
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     const data = await response.json();
 
     if (data.status !== "OK") return null;
@@ -79,10 +85,15 @@ async function fetchCodeforcesData(contestId: string, index: string): Promise<Pr
       problemIndex: index,
     };
   } catch (error) {
-    console.error("Codeforces Fetch Error:", error);
+    if (error instanceof Error && error.name === "TimeoutError") {
+      console.warn("Codeforces API timed out after 5s");
+    } else {
+      console.error("Codeforces Fetch Error:", error);
+    }
     return null;
   }
 }
+
 
 /**
  * MAIN ENRICHMENT FUNCTION

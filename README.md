@@ -22,7 +22,7 @@ DSApline is a production-grade, full-stack web application that enables competit
 - **Comment Discussions** — Threaded discussions on every submission. Users can post and edit their own comments.
 - **Dashboard Analytics** — Real-time stats: total solved, current streak, highest streak, activity heatmap (GitHub-style), and recent submissions. Computed via SQL aggregation queries.
 - **Leaderboard** — Ranking system by total problems solved and active streaks.
-- **Smart Auto-Fill** — Paste a LeetCode or Codeforces URL; the system auto-fetches the problem title, difficulty label, rating, and official tags via API enrichment.
+- **Smart Auto-Fill** — Paste a LeetCode or Codeforces URL; the system auto-fetches the problem title, difficulty label, rating, and official tags via API enrichment (features a 1s debounce and 5s fetch timeout for platform resilience).
 - **Ownership Security** — Server-side ownership checks on all edit endpoints. Users cannot modify others' submissions or comments.
 
 ---
@@ -86,30 +86,48 @@ erDiagram
     PROBLEM {
         String slug PK "Natural key, e.g. two-sum"
         String title "e.g. 1. Two Sum"
-        Float difficultyValue "Community AVG of Submission.difficultyRating"
-        String difficultyLabel "Easy/Medium/Hard (platform label)"
+        Float difficultyValue "Community AVG"
+        String difficultyLabel "Easy/Medium/Hard"
         String platform "leetcode, codeforces, etc."
         String url "Original problem URL"
         Int rating "Codeforces rating"
+    }
+
+    SOLVED_PROBLEM {
+        String id PK "UUID v4"
+        DateTime firstSolvedAt "Immutable first solve date"
+        DateTime lastAttemptedAt "Updates on re-submit, powers archive"
+        String notes "TEXT, shared notes"
+        StringArray tags "PostgreSQL array"
+        Float difficultyRating "User's problem rating"
+        String userId FK "User.id CASCADE"
+        String problemSlug FK "Problem.slug CASCADE"
     }
 
     SUBMISSION {
         String id PK "UUID v4"
         String language "Default cpp"
         String codeSnippet "TEXT, full solution"
-        String notes "TEXT, nullable"
+        String notes "TEXT, specific to submission"
+        String title "Optional label for solution"
         Status status "ENUM: SOLVED/ATTEMPTED/NEEDS_REVIEW"
-        Float difficultyRating "Per-user rating (0-10, nullable = unrated)"
+        Float difficultyRating "Submission difficulty"
+        Boolean isMainSolution "True for primary solve"
         StringArray tags "PostgreSQL array"
+        String timeComplexity "Nullable"
+        String spaceComplexity "Nullable"
         DateTime createdAt "Immutable solve date"
         DateTime updatedAt "Changes on edit"
         String userId FK "User.id CASCADE"
         String problemSlug FK "Problem.slug CASCADE"
+        String solvedProblemId FK "SolvedProblem.id CASCADE"
     }
 
     COMMENT {
         String id PK "UUID v4"
         String content "TEXT, 1-2000 chars"
+        String codeSnippet "TEXT, optional code block"
+        String codeLanguage "Optional language hint"
         DateTime createdAt "Default now()"
         String userId FK "User.id CASCADE"
         String submissionId FK "Submission.id CASCADE"
@@ -123,9 +141,12 @@ erDiagram
         String submissionId FK "Submission.id CASCADE"
     }
 
+    USER ||--o{ SOLVED_PROBLEM : "solves"
     USER ||--o{ SUBMISSION : "creates"
     USER ||--o{ COMMENT : "writes"
-    PROBLEM ||--o{ SUBMISSION : "has solutions"
+    PROBLEM ||--o{ SOLVED_PROBLEM : "has solves"
+    PROBLEM ||--o{ SUBMISSION : "has submissions"
+    SOLVED_PROBLEM ||--o{ SUBMISSION : "groups"
     SUBMISSION ||--o{ COMMENT : "has discussions"
     SUBMISSION ||--o{ SUBMISSION_HISTORY : "has edit history"
 ```
@@ -182,10 +203,11 @@ erDiagram
 | `/problem/[slug]` | — | All solutions for a problem |
 | `/user/[userId]` | — | User profile with stats & history |
 | `/api/submit` | `POST` | Create submission + alternates (multi-step INSERT + AVG recompute) |
-| `/api/submission/[id]` | `GET` `PUT` | Fetch / Edit submission (with audit log + AVG recompute) |
+| `/api/submission/[id]` | `GET` `PUT` `DELETE` | Fetch / Edit / Delete submission (with audit log + AVG recompute + floor guards) |
 | `/api/submission/[id]/history` | `GET` | Edit history entries |
-| `/api/comments` | `GET` `POST` `PUT` | Comments CRUD |
+| `/api/comments` | `GET` `POST` `PUT` `DELETE` | Comments CRUD |
 | `/api/parse-url` | `POST` | LeetCode/Codeforces metadata enrichment |
+| `/api/migrate` | `POST` | ETL migration (guarded by `MIGRATE_SECRET`) |
 
 ---
 
@@ -236,30 +258,13 @@ dsapline/
 │   └── schema.prisma                # Database schema (5 tables, 9 indexes)
 ├── docs/                            # DBMS documentation suite
 │   ├── 01_project_overview.md       # Architecture & tech justification
-│   ├── 02_database_documentation.md # ER diagram, tables, SQL, ACID
-│   ├── 03_team_roles_part1.md       # Aksh, Vedant, Avani, Bhoju
-│   └── 03_team_roles_part2.md       # Melinkeri, Kushwaha, Aarrush
+│   └── 02_database_documentation.md # ER diagram, tables, SQL, ACID
 ├── proxy.ts                         # Clerk auth middleware (Next.js 16 convention)
 └── package.json
 ```
 
 ---
 
-## Team
-
-| Member | Role | Responsibility |
-|--------|------|---------------|
-| **Aksh Shah** | Lead Architect | Database schema design, ER diagram, Archive page, Problem-centric views |
-| **Vedant Vakharia** | Submissions | Submission form UI/UX, edit capabilities, comments/discussion system |
-| **Avani Gadkari** | Users/Auth | Clerk ↔ SQL user sync, profile management, connection pooling |
-| **Arjun Thakur** | Security/History | Audit log (`SubmissionHistory`), ownership guards, SQL injection prevention |
-| **Aditya Melinkeri** | Search/Indexing | B-Tree & GIN indexes, compound indexes, query optimisation |
-| **Aditya Kushwaha** | Dashboard | Aggregation queries (GROUP BY, COUNT, MAX), streak algorithms, heatmap data |
-| **Aarrush Dhumale** | QA/DevOps | ETL migration (JSON→SQL), load testing, documentation, integration testing |
-
-> See [`docs/`](./docs/) for detailed role descriptions, DBMS linkage, and viva preparation (35 Q&A).
-
----
 
 ## Getting Started
 
@@ -288,6 +293,7 @@ Set the following in `.env.local`:
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 DATABASE_URL=postgresql://user:pass@host/dbname?sslmode=require
+MIGRATE_SECRET=your_migration_secret_key
 ```
 
 ```bash

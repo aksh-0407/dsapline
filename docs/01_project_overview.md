@@ -133,10 +133,13 @@ This documentation covers the **V2.0 SQL-backed architecture** — the complete 
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              DATABASE (Neon.tech PostgreSQL)                 │
-│  ┌──────┐ ┌─────────┐ ┌────────────┐ ┌─────────┐ ┌──────┐ │
-│  │ User │ │ Problem │ │ Submission │ │ Comment │ │ Sub- │ │
-│  │      │ │         │ │            │ │         │ │ Hist │ │
-│  └──────┘ └─────────┘ └────────────┘ └─────────┘ └──────┘ │
+│  ┌──────┐ ┌─────────┐ ┌────────┐ ┌────────────┐ ┌─────────┐  │
+│  │ User │ │ Problem │ │ Solved │ │ Submission │ │ Comment │  │
+│  │      │ │         │ │ Problem│ │            │ │         │  │
+│  └──────┘ └─────────┘ └────────┘ └────────────┘ └─────────┘  │
+│                                                ┌────────┐    │
+│                                                │ SubHist│    │
+│                                                └────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -145,12 +148,14 @@ This documentation covers the **V2.0 SQL-backed architecture** — the complete 
 1. **Client** → User fills `SubmitForm.tsx` and hits "Confirm Submission"
 2. **Network** → `POST /api/submit` with `FormData` (URL, code, tags, difficulty)
 3. **Auth Check** → `auth()` extracts `userId` from Clerk JWT cookie
-4. **Enrichment** → `enrichProblemData(url)` calls LeetCode GraphQL / Codeforces REST API
+4. **Enrichment** → `enrichProblemData(url)` calls LeetCode GraphQL / Codeforces REST API (guarded by 5000ms AbortSignal)
 5. **User Upsert** → `prisma.user.upsert()` ensures user exists in SQL
 6. **Problem Upsert** → `prisma.problem.upsert()` creates or finds the problem
-7. **Submission Insert** → `prisma.submission.create()` stores the code
-8. **Stats Update** → `prisma.user.update({ totalSolved: { increment: 1 } })`
-9. **Response** → `{ success: true, id: submissionId }` → Client redirects to Dashboard
+7. **SolvedProblem Check** → Checks if `SolvedProblem` exists for `(userId, problemSlug)`
+8. **SolvedProblem Upsert** → Creates canonical solve record or updates existing one
+9. **Submission Insert** → `prisma.submission.create()` stores the code linked to the `SolvedProblem`
+10. **Stats Update** → `prisma.user.update({ totalSolved: { increment: 1 } })` (only if first solve)
+11. **Response** → `{ success: true, id: submissionId }` → Client redirects to Dashboard
 
 ---
 
@@ -166,8 +171,9 @@ This documentation covers the **V2.0 SQL-backed architecture** — the complete 
 | `/problem/[slug]` | Problem View | No | `getSubmissionsByProblem()` → SQL |
 | `/user/[userId]` | User Profile | No | `getDashboardData()` → SQL |
 | `/api/submit` | Create Submission | Yes | `POST` → INSERT |
-| `/api/submission/[id]` | Get/Edit Submission | No (GET) / Yes (PUT) | SELECT / UPDATE |
+| `/api/submission/[id]` | Get/Edit/Delete Submission | No (GET) / Yes (PUT/DELETE) | SELECT / UPDATE / DELETE |
 | `/api/submission/[id]/history` | Edit History | No | SELECT |
-| `/api/comments` | Comments CRUD | No (GET) / Yes (POST/PUT) | SELECT / INSERT / UPDATE |
+| `/api/comments` | Comments CRUD | No (GET) / Yes (POST/PUT/DELETE) | SELECT / INSERT / UPDATE / DELETE |
 | `/api/parse-url` | URL Enrichment | No | External API calls |
 | `/api/tags` | Available Tags | No | SELECT |
+| `/api/migrate` | ETL Migration | Yes (`MIGRATE_SECRET`) | UPSERT / INSERT |

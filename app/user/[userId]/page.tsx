@@ -1,4 +1,5 @@
 import { getDashboardData } from "@/lib/analytics";
+import { getUserArchive } from "@/lib/archive";
 import Archive from "@/components/Archive";
 import { LinkIcon, User } from "lucide-react";
 
@@ -96,8 +97,6 @@ export default async function UserProfile({ params }: Props) {
 }
 
 async function ArchiveWrapper({ userId }: { userId: string }) {
-  const { getUserArchive } = await import("@/lib/archive");
   const userData = await getUserArchive(userId);
-  
   return <Archive data={userData} currentUserId={null} />;
 }

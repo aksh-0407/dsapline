@@ -155,6 +155,7 @@ export default async function SubmissionPage({ params }: Props) {
           initialNotes={sub.notes ?? ""}
           initialTags={sub.tags}
           initialLanguage={sub.language}
+          initialTitle={sub.title}
           initialDifficultyRating={sub.difficultyRating}
           communityAvgDifficulty={communityAvg}
           editCount={sub._count.history}
