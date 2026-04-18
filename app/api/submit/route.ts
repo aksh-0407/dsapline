@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import prisma from "@/lib/prisma";
 import { enrichProblemData } from "@/lib/services";
 import { titleToSlug } from "@/lib/utils";
@@ -266,6 +267,12 @@ export async function POST(req: Request) {
     // 15. Recompute community average difficulty for this problem
     //     (per SolvedProblem — one data point per user, not per Submission)
     await recomputeProblemAvgDifficulty(problemSlug);
+
+    // 16. Burst Next.js Cache so new problems appear immediately
+    revalidatePath("/");
+    revalidatePath("/archive");
+    revalidatePath("/leaderboard");
+    revalidatePath(`/user/${userId}`);
 
     return NextResponse.json({
       success: true,

@@ -1,18 +1,18 @@
-export const dynamic = "force-dynamic";
-
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { Suspense } from "react";
+import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { getDashboardData } from "@/lib/analytics";
+import prisma from "@/lib/prisma";
 import { StatsGrid } from "@/components/StatsGrid";
 import { ArrowRight, Code2, TrendingUp, Shield, BarChart3, Users } from "lucide-react";
-import { ActivityHeatmap } from "@/components/ActivityHeatmap"; 
+import { ActivityHeatmap } from "@/components/ActivityHeatmap";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 
 export default async function Home() {
   const { userId } = await auth();
-  const user = await currentUser();
   
   // --- 1. LANDING PAGE (Logged Out) ---
-  if (!userId || !user) {
+  if (!userId) {
     return (
       <main className="min-h-screen bg-gray-950 text-white selection:bg-blue-500/30 flex flex-col justify-center">
         
@@ -93,17 +93,18 @@ export default async function Home() {
   }
 
   // --- 2. DASHBOARD (Logged In) ---
-  const stats = await getDashboardData(userId);
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+  const firstName = user?.fullName?.split(" ")[0] ?? "there";
 
   return (
     <main className="min-h-screen bg-gray-950 text-white p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        {/* Header (Instantly Loaded) */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold">Dashboard</h2>
-            <p className="text-gray-400">Welcome back, {user?.firstName ?? "there"}.</p>
+            <p className="text-gray-400">Welcome back, {firstName}.</p>
           </div>
           <Link href="/submit">
             <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition shadow-lg shadow-blue-900/20 hover:scale-[1.02]">
@@ -113,81 +114,96 @@ export default async function Home() {
           </Link>
         </div>
 
-        {/* Stats Row */}
-        <StatsGrid stats={stats} />
-
-        {/* Heatmap Placeholder */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-           <div className="flex items-center gap-2 mb-4">
-             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-             <h3 className="font-bold text-gray-300">Activity Graph</h3>
-           </div>
-           
-           {/* Render the Heatmap passing the data from stats */}
-           <ActivityHeatmap activityMap={stats.activityMap} />
-        </div>
-
-        {/* Recent Activity List */}
-        <div>
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-blue-400"/> Recent Activity
-          </h3>
-          {stats.recentActivity.length > 0 ? (
-            <div className="space-y-3">
-              {stats.recentActivity.map((sub) => (
-                <div key={sub.id} className="bg-gray-900 border border-gray-800 p-4 rounded-lg flex items-center justify-between hover:border-gray-700 transition group">
-                  
-                  {/* LEFT: Info & Badges */}
-                  <div className="flex items-center gap-4">
-                    <span className={`px-2 py-1 rounded text-xs font-mono font-bold
-                      ${sub.difficulty >= 7 ? 'bg-red-900/30 text-red-400' : 
-                        sub.difficulty >= 4 ? 'bg-yellow-900/30 text-yellow-400' : 
-                        'bg-emerald-900/30 text-emerald-400'}`}>
-                      {sub.difficulty.toFixed(1)}
-                    </span>
-                    <div>
-                      {/* Title Link */}
-                      <Link href={`/submission/${sub.id}`} className="font-semibold hover:text-blue-400 transition-colors">
-                        {sub.title}
-                      </Link>
-                      <div className="text-xs text-gray-500 flex gap-2">
-                        <span>{sub.date}</span>
-                        <span>•</span>
-                        <span className="capitalize">{sub.platform}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* RIGHT: Tags & Action Button */}
-                  <div className="flex items-center gap-4">
-                    <div className="hidden md:flex gap-1">
-                      {sub.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-[10px] bg-gray-800 text-gray-400 px-2 py-1 rounded border border-gray-700">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <Link 
-                      href={`/submission/${sub.id}`}
-                      className="text-gray-500 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800"
-                      title="View Code"
-                    >
-                      <Code2 size={18} />
-                    </Link>
-                  </div>
-
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-800/50">
-               <p className="text-gray-500 italic">No submissions yet. Go solve a problem!</p>
-            </div>
-          )}
-        </div>
+        {/* Dashboard Feed (Suspended) */}
+        <Suspense fallback={<DashboardSkeleton />}>
+          <DashboardFeed userId={userId} />
+        </Suspense>
 
       </div>
     </main>
+  );
+}
+
+// Extract data fetching to a separate Server Component
+async function DashboardFeed({ userId }: { userId: string }) {
+  const stats = await getDashboardData(userId);
+
+  return (
+    <div className="space-y-8">
+
+      {/* Stats Row */}
+      <StatsGrid stats={stats} />
+
+      {/* Heatmap Placeholder */}
+      <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+         <div className="flex items-center gap-2 mb-4">
+           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+           <h3 className="font-bold text-gray-300">Activity Graph</h3>
+         </div>
+         
+         {/* Render the Heatmap passing the data from stats */}
+         <ActivityHeatmap activityMap={stats.activityMap} />
+      </div>
+
+      {/* Recent Activity List */}
+      <div>
+        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <TrendingUp size={20} className="text-blue-400"/> Recent Activity
+        </h3>
+        {stats.recentActivity.length > 0 ? (
+          <div className="space-y-3">
+            {stats.recentActivity.map((sub) => (
+              <div key={sub.id} className="bg-gray-900 border border-gray-800 p-4 rounded-lg flex items-center justify-between hover:border-gray-700 transition group">
+                
+                {/* LEFT: Info & Badges */}
+                <div className="flex items-center gap-4">
+                  <span className={`px-2 py-1 rounded text-xs font-mono font-bold
+                    ${sub.difficulty >= 7 ? 'bg-red-900/30 text-red-400' : 
+                      sub.difficulty >= 4 ? 'bg-yellow-900/30 text-yellow-400' : 
+                      'bg-emerald-900/30 text-emerald-400'}`}>
+                    {sub.difficulty !== null ? sub.difficulty.toFixed(1) : "—"}
+                  </span>
+                  <div>
+                    {/* Title Link */}
+                    <Link href={`/submission/${sub.id}`} className="font-semibold hover:text-blue-400 transition-colors">
+                      {sub.title}
+                    </Link>
+                    <div className="text-xs text-gray-500 flex gap-2">
+                      <span>{sub.date}</span>
+                      <span>•</span>
+                      <span className="capitalize">{sub.platform}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT: Tags & Action Button */}
+                <div className="flex items-center gap-4">
+                  <div className="hidden md:flex gap-1">
+                    {sub.tags.slice(0, 3).map((tag: string) => (
+                      <span key={tag} className="text-[10px] bg-gray-800 text-gray-400 px-2 py-1 rounded border border-gray-700">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <Link 
+                    href={`/submission/${sub.id}`}
+                    className="text-gray-500 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800"
+                    title="View Code"
+                  >
+                    <Code2 size={18} />
+                  </Link>
+                </div>
+
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-800/50">
+             <p className="text-gray-500 italic">No submissions yet. Go solve a problem!</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

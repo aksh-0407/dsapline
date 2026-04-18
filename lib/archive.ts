@@ -51,28 +51,35 @@ function mapToArchiveEntry(sp: SolvedProblemWithRelations): ArchiveEntry {
 }
 
 
+import { unstable_cache } from "next/cache";
+
 /**
  * getGlobalArchive()
  * Returns one ArchiveEntry per unique (userId, problemSlug) pair,
  * ordered by lastAttemptedAt DESC so recently revisited problems float top.
+ * Uses unstable_cache to avoid hitting the DB on every request.
  */
-export async function getGlobalArchive(): Promise<ArchiveEntry[]> {
-  const solvedProblems = await prisma.solvedProblem.findMany({
-    include: {
-      problem: true,
-      user: true,
-      _count: { select: { submissions: true } },
-      submissions: {
-        where: { isMainSolution: true },
-        orderBy: { createdAt: "asc" },
-        take: 1,
+export const getGlobalArchive = unstable_cache(
+  async (): Promise<ArchiveEntry[]> => {
+    const solvedProblems = await prisma.solvedProblem.findMany({
+      include: {
+        problem: true,
+        user: true,
+        _count: { select: { submissions: true } },
+        submissions: {
+          where: { isMainSolution: true },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+        },
       },
-    },
-    orderBy: { lastAttemptedAt: "desc" },
-  });
+      orderBy: { lastAttemptedAt: "desc" },
+    });
 
-  return solvedProblems.map(mapToArchiveEntry);
-}
+    return solvedProblems.map(mapToArchiveEntry);
+  },
+  ["global-archive"],
+  { tags: ["global-archive"], revalidate: 60 }
+);
 
 /**
  * getUserArchive(userId)

@@ -1,53 +1,14 @@
 export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
+import { unstable_cache } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { LeaderboardClient } from "@/components/LeaderboardClient";
+import { LeaderboardSkeleton } from "@/components/skeletons/LeaderboardSkeleton";
 
 export default async function LeaderboardPage() {
-  const { userId: currentUserId } = await auth();
-
-  // Fetch user stats directly from the User table.
-  // totalSolved is kept accurate by the submit route (Case A/B branching).
-  // currentStreak / maxStreak are computed and stored by the migration;
-  // for live accuracy you could recompute from submissions, but the stored
-  // values are good enough for display.
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      fullName: true,
-      totalSolved: true,
-      currentStreak: true,
-      maxStreak: true,
-      updatedAt: true,
-      // Pull the most recent submission for "last active" date
-      submissions: {
-        select: { createdAt: true },
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
-      // Pull all submission dates for live streak recompute (lightweight)
-      _count: { select: { submissions: true } },
-    },
-    orderBy: { totalSolved: "desc" },
-  });
-
-  const leaderboardData = users.map((u) => {
-    const lastSubmission = u.submissions[0];
-    const lastActive = lastSubmission
-      ? lastSubmission.createdAt.toISOString().split("T")[0]
-      : u.updatedAt.toISOString().split("T")[0];
-
-    return {
-      userId: u.id,
-      username: u.fullName ?? u.id,
-      totalSolved: u.totalSolved,
-      highestStreak: u.maxStreak,
-      currentStreak: u.currentStreak,
-      lastActive,
-      favoritePlatform: "General", // Could be enriched, but not needed for ranking
-    };
-  });
+  const { userId } = await auth();
 
   return (
     <main className="min-h-screen bg-gray-950 text-white p-6 md:p-12">
@@ -60,10 +21,68 @@ export default async function LeaderboardPage() {
           </h1>
         </div>
 
-        {/* Client Component with Sorting Tabs */}
-        <LeaderboardClient data={leaderboardData} currentUserId={currentUserId} />
+        {/* Suspended Feed */}
+        <Suspense fallback={<LeaderboardSkeleton />}>
+          <LeaderboardFeed currentUserId={userId} />
+        </Suspense>
 
       </div>
     </main>
   );
+}
+
+async function LeaderboardFeed({ currentUserId }: { currentUserId: string | null }) {
+  const getLeaderboardData = unstable_cache(
+    async () => {
+      // Fetch user stats directly from the User table.
+      // totalSolved is kept accurate by the submit route (Case A/B branching).
+      // currentStreak / maxStreak are computed and stored by the migration;
+      // for live accuracy you could recompute from submissions, but the stored
+      // values are good enough for display.
+      const users = await prisma.user.findMany({
+        select: {
+          id: true,
+          fullName: true,
+          totalSolved: true,
+          currentStreak: true,
+          maxStreak: true,
+          updatedAt: true,
+          // Pull the most recent submission for "last active" date
+          submissions: {
+            select: { createdAt: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+          // Pull all submission dates for live streak recompute (lightweight)
+          _count: { select: { submissions: true } },
+        },
+        orderBy: { totalSolved: "desc" },
+      });
+
+      return users.map((u) => {
+        const lastSubmission = u.submissions[0];
+        const lastActive = lastSubmission
+          ? lastSubmission.createdAt.toISOString().split("T")[0]
+          : u.updatedAt.toISOString().split("T")[0];
+
+        return {
+          userId: u.id,
+          username: u.fullName ?? u.id,
+          totalSolved: u.totalSolved,
+          highestStreak: u.maxStreak,
+          currentStreak: u.currentStreak,
+          lastActive,
+          favoritePlatform: "General", // Could be enriched, but not needed for ranking
+        };
+      });
+    },
+    ["leaderboard-data"],
+    { tags: ["leaderboard-data"], revalidate: 86400 }
+  );
+
+  const leaderboardData = await getLeaderboardData();
+
+
+
+  return <LeaderboardClient data={leaderboardData} currentUserId={currentUserId} />;
 }

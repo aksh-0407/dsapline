@@ -1,13 +1,11 @@
+import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { getGlobalArchive } from "@/lib/archive";
 import Archive from "@/components/Archive";
-
-// Force dynamic so we always see new submissions immediately
-export const dynamic = "force-dynamic";
+import { ArchiveSkeleton } from "@/components/skeletons/ArchiveSkeleton";
 
 export default async function ArchivePage() {
   const { userId } = await auth();
-  const data = await getGlobalArchive();
 
   return (
     <main className="min-h-screen bg-gray-950 text-white p-6 md:p-8">
@@ -23,21 +21,33 @@ export default async function ArchivePage() {
               The complete library of every problem solved by the community.
             </p>
           </div>
-          
-          <div className="text-right hidden md:block">
-            <div className="text-3xl font-mono font-bold text-white">
-              {data.length}
-            </div>
-            <div className="text-xs text-gray-500 uppercase tracking-widest">
-              Total Problems
-            </div>
-          </div>
         </div>
 
         {/* The Archive Interface (Search, Filter, Table) */}
-        <Archive data={data} currentUserId={userId} />
+        <Suspense fallback={<ArchiveSkeleton />}>
+          <ArchiveFeed currentUserId={userId} />
+        </Suspense>
         
       </div>
     </main>
+  );
+}
+
+// Extract data fetching to a separate Server Component
+async function ArchiveFeed({ currentUserId }: { currentUserId: string | null }) {
+  const data = await getGlobalArchive();
+
+  return (
+    <>
+      <div className="text-right hidden md:block absolute top-6 md:top-8 right-6 md:right-8">
+        <div className="text-3xl font-mono font-bold text-white">
+          {data.length}
+        </div>
+        <div className="text-xs text-gray-500 uppercase tracking-widest">
+          Total Problems
+        </div>
+      </div>
+      <Archive data={data} currentUserId={currentUserId} />
+    </>
   );
 }

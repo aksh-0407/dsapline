@@ -1,4 +1,5 @@
 import prisma from "./prisma";
+import { unstable_cache } from "next/cache";
 import { IndexEntry } from "./types";
 import { mapSubmissionToIndexEntry } from "./archive";
 import { toISTDateString, todayIST, yesterdayIST } from "./date";
@@ -13,8 +14,10 @@ export interface DashboardStats {
 }
 
 export async function getDashboardData(userId: string): Promise<DashboardStats> {
-  // 1. totalSolved = unique SolvedProblem rows for this user
-  //    This is the canonical count — does NOT inflate for alternates/re-submits.
+  return unstable_cache(
+    async (id: string) => {
+      // 1. totalSolved = unique SolvedProblem rows for this user
+      //    This is the canonical count — does NOT inflate for alternates/re-submits.
   const totalSolved = await prisma.solvedProblem.count({ where: { userId } });
 
   // 2. All submission timestamps for heatmap + streaks
@@ -102,12 +105,16 @@ export async function getDashboardData(userId: string): Promise<DashboardStats> 
 
   const recentActivity: IndexEntry[] = recentRaw.map(mapSubmissionToIndexEntry);
 
-  return {
-    totalSolved,
-    uniqueDays: sortedDates.length,
-    currentStreak,
-    highestStreak,
-    recentActivity,
-    activityMap,
-  };
+    return {
+      totalSolved,
+      uniqueDays: sortedDates.length,
+      currentStreak,
+      highestStreak,
+      recentActivity,
+      activityMap,
+    };
+  },
+  [`dashboard-${userId}`],
+  { tags: [`dashboard-${userId}`], revalidate: 86400 } // Cache for 24 hours, manually revalidated on submit
+  )(userId);
 }
