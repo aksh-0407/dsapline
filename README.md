@@ -57,17 +57,35 @@ DSApline V2 uses a **Server Component-first** architecture where data-fetching h
 
 ### Request Flow — Submitting a Solution
 
-1. User fills `SubmitForm.tsx` → `POST /api/submit` with FormData (including up to 10 alt solutions)
-2. `auth()` extracts `userId` from Clerk JWT cookie
-3. `enrichProblemData(url)` calls LeetCode GraphQL / Codeforces REST API for metadata
-4. `prisma.user.upsert()` — ensures User exists in SQL (Clerk → DB sync)
-5. `prisma.problem.upsert()` — creates Problem if first time
-6. `prisma.solvedProblem.upsert()` — creates or updates the canonical record for this user/problem. Updates `lastAttemptedAt`.
-7. `prisma.user.update()` — increments `totalSolved` ONLY if this is a first-time solve.
-8. `prisma.submission.create()` — stores main solution with user's `difficultyRating`, linked to the `SolvedProblem`
-9. Loop: `prisma.submission.create()` × N — stores each alternate solution
-10. `recomputeProblemAvgDifficulty(slug)` — `AVG(difficultyRating)` → updates `Problem.difficultyValue`
+1. User fills `SubmitForm.tsx` (URL, language, up to 10 alt solutions) → `POST /api/submit` with FormData
+2. `auth()` extracts `userId` from Clerk JWT cookie; input is validated and hardened (URL, code length, tags)
+3. `enrichProblemData(url)` calls LeetCode GraphQL / Codeforces REST API for metadata *(outside the transaction)*
+
+   Steps 4–9 run inside a single `prisma.$transaction` (all-or-nothing):
+4. `tx.user.upsert()` — ensures User exists in SQL (Clerk → DB sync)
+5. `tx.problem.upsert()` — creates Problem if first time
+6. `tx.solvedProblem.create()/update()` — creates the canonical record (first solve) or updates it + bumps `lastAttemptedAt` (re-submit)
+7. `tx.user.update()` — increments `totalSolved` ONLY if this is a first-time solve
+8. `tx.submission.create()` × (1 + N) — stores the main solution + each alternate, linked to the `SolvedProblem`
+9. `recomputeProblemAvgDifficulty()` (community `AVG`) + `recomputeUserStreaks()` (current/max streaks)
+10. `revalidateAfterWrite(userId)` purges the dashboard/archive/leaderboard cache tags so the new data appears immediately
 11. Returns `{ success: true, id }` → client redirects to Dashboard
+
+### Caching & Consistency
+
+Read-heavy pages are served from the Next.js Data Cache via `unstable_cache`:
+the dashboard (`dashboard-<userId>`), the global archive (`global-archive`), and
+the leaderboard (`leaderboard-data`). These entries are **not** invalidated by
+`revalidatePath`, so every write path (submit / edit / delete) calls
+`revalidateAfterWrite(userId)` (`lib/cache.ts`), which purges the relevant tags
+with `revalidateTag(tag, "max")` (the Next.js 16 signature). The numeric
+`revalidate` windows on each cache act only as a safety backstop.
+
+All multi-row writes run inside `prisma.$transaction`, so denormalised counters
+(`User.totalSolved`, streaks) and the `SolvedProblem` / `Submission` rows can
+never drift out of sync if a request fails midway. `User.currentStreak` /
+`maxStreak` are recomputed on every write (`lib/streaks.ts`) so the leaderboard
+stays accurate, while the dashboard computes streaks live from submission dates.
 
 ---
 
@@ -193,13 +211,16 @@ erDiagram
 | **ORM** | Prisma 7.6 | Type-safe queries, auto-parameterisation (SQL injection prevention), declarative schema |
 | **Auth** | Clerk | Managed OAuth/JWT; `proxy.ts` middleware (Next.js 16 convention) |
 | **Styling** | Tailwind CSS 4 | Utility-first, dark mode, responsive |
-| **Validation** | Zod 4 | Runtime schema validation for API payloads |
+| **Validation** | Zod 4 | Read-model schema/type definitions (`lib/types.ts`); API inputs are validated with explicit server-side guards |
 | **Icons** | Lucide React | Consistent icon set |
 | **Deployment** | Vercel + Neon.tech | Serverless frontend + serverless database |
 
 ---
 
 ## Pages & API Routes
+
+All pages except the landing page require sign-in — the Clerk middleware
+(`proxy.ts`) redirects signed-out visitors to `/`, which hosts the sign-in modal.
 
 | Route | Method | Description |
 |-------|--------|-------------|
@@ -256,12 +277,16 @@ dsapline/
 │   ├── archive.ts                   # Archive: global + per-user fetch
 │   ├── viewer.ts                    # Problem-centric data fetching
 │   ├── date.ts                      # IST timezone utilities
+│   ├── streaks.ts                   # Streak math + recompute-on-write
+│   ├── problem-stats.ts             # Community-average difficulty recompute
+│   ├── cache.ts                     # Cache tags + revalidateAfterWrite()
+│   ├── constants.ts                 # Shared CODE_LANGUAGES / PREDEFINED_TAGS
 │   ├── filterEngine.ts              # Client-side filter logic (7 dimensions)
 │   ├── services.ts                  # LeetCode/Codeforces API enrichment
-│   ├── types.ts                     # IndexEntry type + Zod schema
-│   ├── db.ts                        # SQL user sync (Clerk → PostgreSQL)
-│   ├── github.ts                    # GitHub API (used by migrate route only)
-│   └── utils.ts                     # Tailwind merge utility
+│   ├── types.ts                     # IndexEntry / ArchiveEntry read-model types
+│   ├── db.ts                        # Clerk → SQL user sync helper (legacy, unused)
+│   ├── github.ts                    # GitHub API (legacy JSON era; retained for re-migration)
+│   └── utils.ts                     # Tailwind merge + titleToSlug()
 ├── prisma/
 │   ├── schema.prisma                # Database schema (6 tables, 12 indexes)
 │   └── prisma.config.ts             # Prisma v7.6+ configuration file

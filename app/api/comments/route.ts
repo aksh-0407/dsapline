@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { resolveDisplayName } from "@/lib/utils";
 
 /**
  * GET /api/comments?submissionId=X
@@ -83,15 +84,12 @@ export async function POST(req: Request) {
     }
 
     // Ensure user exists in SQL
-    const fullName = `${user.firstName} ${user.lastName || ""}`.trim();
+    const email = user.emailAddresses[0]?.emailAddress ?? `${userId}@clerk.user`;
+    const fullName = resolveDisplayName(user.firstName, user.lastName, email, userId);
     await prisma.user.upsert({
       where: { id: userId },
-      update: { fullName },
-      create: {
-        id: userId,
-        email: user.emailAddresses[0]?.emailAddress ?? `${userId}@clerk.user`,
-        fullName,
-      },
+      update: { fullName, email },
+      create: { id: userId, email, fullName },
     });
 
     // Create the comment

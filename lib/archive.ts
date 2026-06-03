@@ -1,6 +1,7 @@
 import prisma from "./prisma";
 import { IndexEntry, ArchiveEntry } from "./types";
 import { toISTDateString } from "./date";
+import { ARCHIVE_TAG } from "./cache";
 import { Prisma } from "@prisma/client";
 
 // ---------------------------------------------------------------------------
@@ -77,8 +78,8 @@ export const getGlobalArchive = unstable_cache(
 
     return solvedProblems.map(mapToArchiveEntry);
   },
-  ["global-archive"],
-  { tags: ["global-archive"], revalidate: 60 }
+  [ARCHIVE_TAG],
+  { tags: [ARCHIVE_TAG], revalidate: 60 }
 );
 
 /**
@@ -136,7 +137,8 @@ export function mapSubmissionToIndexEntry(sub: SubmissionWithRelations): IndexEn
   return {
     id: sub.id,
     title: sub.problem.title,
-    difficulty: sub.problem.difficultyValue ?? 5,
+    // null = unrated. Rendered as "—" (never a phantom default like 5.0).
+    difficulty: sub.problem.difficultyValue ?? null,
     difficultyRating: sub.difficultyRating,
     tags: sub.tags,
     username: sub.user.fullName ?? sub.userId,

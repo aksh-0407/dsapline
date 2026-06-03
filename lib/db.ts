@@ -1,5 +1,6 @@
 import prisma from "./prisma";
 import { currentUser } from "@clerk/nextjs/server";
+import { resolveDisplayName } from "./utils";
 
 /**
  * Upserts the current Clerk user into the SQL Users table.
@@ -9,18 +10,12 @@ export async function getOrCreateUserSQL() {
   const user = await currentUser();
   if (!user) return null;
 
-  const fullName = `${user.firstName} ${user.lastName || ""}`.trim();
+  const email = user.emailAddresses[0]?.emailAddress ?? `${user.id}@clerk.user`;
+  const fullName = resolveDisplayName(user.firstName, user.lastName, email, user.id);
 
   return prisma.user.upsert({
     where: { id: user.id },
-    update: {
-      fullName,
-      email: user.emailAddresses[0]?.emailAddress ?? `${user.id}@clerk.user`,
-    },
-    create: {
-      id: user.id,
-      email: user.emailAddresses[0]?.emailAddress ?? `${user.id}@clerk.user`,
-      fullName,
-    },
+    update: { fullName, email },
+    create: { id: user.id, email, fullName },
   });
 }

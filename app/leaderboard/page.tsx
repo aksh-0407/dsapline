@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { unstable_cache } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { LEADERBOARD_TAG } from "@/lib/cache";
 import { LeaderboardClient } from "@/components/LeaderboardClient";
 import { LeaderboardSkeleton } from "@/components/skeletons/LeaderboardSkeleton";
 
@@ -34,11 +35,9 @@ export default async function LeaderboardPage() {
 async function LeaderboardFeed({ currentUserId }: { currentUserId: string | null }) {
   const getLeaderboardData = unstable_cache(
     async () => {
-      // Fetch user stats directly from the User table.
-      // totalSolved is kept accurate by the submit route (Case A/B branching).
-      // currentStreak / maxStreak are computed and stored by the migration;
-      // for live accuracy you could recompute from submissions, but the stored
-      // values are good enough for display.
+      // Fetch user stats directly from the User table. All three are kept
+      // accurate on every write: totalSolved via the submit/delete routes, and
+      // currentStreak / maxStreak via recomputeUserStreaks() (lib/streaks.ts).
       const users = await prisma.user.findMany({
         select: {
           id: true,
@@ -76,8 +75,8 @@ async function LeaderboardFeed({ currentUserId }: { currentUserId: string | null
         };
       });
     },
-    ["leaderboard-data"],
-    { tags: ["leaderboard-data"], revalidate: 86400 }
+    [LEADERBOARD_TAG],
+    { tags: [LEADERBOARD_TAG], revalidate: 300 } // 5-min backstop; busted on every write
   );
 
   const leaderboardData = await getLeaderboardData();

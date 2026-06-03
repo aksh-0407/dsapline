@@ -9,7 +9,8 @@ import {
   useUser
 } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
-import { Code2, LayoutDashboard, Trophy, Archive, PlusCircle, Menu, X } from "lucide-react";
+import Image from "next/image";
+import { LayoutDashboard, Trophy, Archive, PlusCircle, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
@@ -32,10 +33,15 @@ export function Navbar() {
         <div className="flex justify-between h-16 items-center">
 
           {/* Logo - Always visible */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-blue-600/20 p-2 rounded-lg group-hover:bg-blue-600/30 transition-colors">
-              <Code2 className="text-blue-500" size={24} />
-            </div>
+          <Link href="/" className="flex items-center gap-1.5 group">
+            <Image
+              src="/logo_nobg_small.png"
+              alt="DSApline logo"
+              width={677}
+              height={369}
+              priority
+              className="h-10 w-auto transition-transform group-hover:scale-105"
+            />
             <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               DSApline
             </span>

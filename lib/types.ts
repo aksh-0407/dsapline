@@ -22,8 +22,8 @@ export const IndexEntrySchema = z.object({
   id: z.string(),
   title: z.string(),
 
-  // Community average difficulty (0-10). May be null if no one has rated yet.
-  difficulty: z.number(),
+  // Community average difficulty (0-10). null = unrated (no one has rated yet).
+  difficulty: z.number().nullable(),
 
   // The submission author's own rating for this submission. Null = unrated.
   difficultyRating: z.number().nullable().optional(),

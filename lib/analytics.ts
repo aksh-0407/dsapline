@@ -2,9 +2,12 @@ import prisma from "./prisma";
 import { unstable_cache } from "next/cache";
 import { IndexEntry } from "./types";
 import { mapSubmissionToIndexEntry } from "./archive";
-import { toISTDateString, todayIST, yesterdayIST } from "./date";
+import { toISTDateString } from "./date";
+import { calculateStreaks } from "./streaks";
+import { dashboardTag } from "./cache";
 
 export interface DashboardStats {
+  username: string;
   totalSolved: number;
   uniqueDays: number;
   currentStreak: number;
@@ -15,106 +18,56 @@ export interface DashboardStats {
 
 export async function getDashboardData(userId: string): Promise<DashboardStats> {
   return unstable_cache(
-    async (id: string) => {
-      // 1. totalSolved = unique SolvedProblem rows for this user
-      //    This is the canonical count — does NOT inflate for alternates/re-submits.
-  const totalSolved = await prisma.solvedProblem.count({ where: { userId } });
+    async (id: string): Promise<DashboardStats> => {
+      // All four reads are independent — run them concurrently so the wall-clock
+      // cost is one round-trip's worth, not four (matters most on Neon cold starts).
+      const [totalSolved, allSubs, recentRaw, userRow] = await Promise.all([
+        // totalSolved = unique SolvedProblem rows (does NOT inflate for alternates).
+        prisma.solvedProblem.count({ where: { userId: id } }),
+        // Every submission timestamp powers the heatmap + streaks.
+        prisma.submission.findMany({
+          where: { userId: id },
+          select: { createdAt: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        // Last 5 submission events of any type for the recent-activity feed.
+        prisma.submission.findMany({
+          where: { userId: id },
+          include: { problem: true, user: true },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        }),
+        prisma.user.findUnique({ where: { id }, select: { fullName: true, email: true } }),
+      ]);
 
-  // 2. All submission timestamps for heatmap + streaks
-  //    ANY submission event (main, alternate, re-submission) marks that day active.
-  const allSubs = await prisma.submission.findMany({
-    where: { userId },
-    select: { createdAt: true },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // 3. Generate Activity Map (DateString → Count)
-  const activityMap: Record<string, number> = {};
-  allSubs.forEach((sub) => {
-    const dateStr = toISTDateString(sub.createdAt);
-    activityMap[dateStr] = (activityMap[dateStr] || 0) + 1;
-  });
-
-  // 4. Calculate Streaks
-  const sortedDates = Object.keys(activityMap).sort();
-
-  let currentStreak = 0;
-  let highestStreak = 0;
-  let tempStreak = 0;
-
-  if (sortedDates.length > 0) {
-    // --- A. Highest Streak Calculation (Forward Pass) ---
-    for (let i = 0; i < sortedDates.length; i++) {
-      const thisDate = new Date(sortedDates[i]);
-      thisDate.setHours(12, 0, 0, 0);
-
-      const prevDate = i > 0 ? new Date(sortedDates[i - 1]) : null;
-      if (prevDate) prevDate.setHours(12, 0, 0, 0);
-
-      if (prevDate) {
-        const diffTime = Math.abs(thisDate.getTime() - prevDate.getTime());
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays === 1) {
-          tempStreak++;
-        } else {
-          tempStreak = 1;
-        }
-      } else {
-        tempStreak = 1;
+      // Activity map (IST date string → count).
+      const activityMap: Record<string, number> = {};
+      for (const sub of allSubs) {
+        const dateStr = toISTDateString(sub.createdAt);
+        activityMap[dateStr] = (activityMap[dateStr] || 0) + 1;
       }
-      if (tempStreak > highestStreak) highestStreak = tempStreak;
-    }
 
-    // --- B. Current Streak Calculation (Backward Check) ---
-    let checkDate = new Date();
-    const todayStr = todayIST();
-    const yestStr = yesterdayIST();
+      // Streaks (shared logic — see lib/streaks.ts).
+      const dates = Object.keys(activityMap);
+      const { currentStreak, maxStreak: highestStreak } = calculateStreaks(dates);
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+      const recentActivity: IndexEntry[] = recentRaw.map(mapSubmissionToIndexEntry);
 
-    let streakIsAlive = false;
-    if (activityMap[todayStr]) {
-      streakIsAlive = true;
-    } else if (activityMap[yestStr]) {
-      checkDate = yesterday;
-      streakIsAlive = true;
-    }
+      // Prefer the stored name; fall back to the email local-part; never a raw id.
+      const username =
+        userRow?.fullName?.trim() || userRow?.email?.split("@")[0] || id;
 
-    if (streakIsAlive) {
-      while (true) {
-        const dateStr = toISTDateString(checkDate);
-        if (activityMap[dateStr]) {
-          currentStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-    }
-  }
-
-  // 5. Recent Activity — last 5 Submission events (any type)
-  //    Shows what the user has actually been coding recently.
-  const recentRaw = await prisma.submission.findMany({
-    where: { userId },
-    include: { problem: true, user: true },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
-
-  const recentActivity: IndexEntry[] = recentRaw.map(mapSubmissionToIndexEntry);
-
-    return {
-      totalSolved,
-      uniqueDays: sortedDates.length,
-      currentStreak,
-      highestStreak,
-      recentActivity,
-      activityMap,
-    };
-  },
-  [`dashboard-${userId}`],
-  { tags: [`dashboard-${userId}`], revalidate: 86400 } // Cache for 24 hours, manually revalidated on submit
+      return {
+        username,
+        totalSolved,
+        uniqueDays: dates.length,
+        currentStreak,
+        highestStreak,
+        recentActivity,
+        activityMap,
+      };
+    },
+    [dashboardTag(userId)],
+    { tags: [dashboardTag(userId)], revalidate: 86400 } // 24h backstop; busted on every write
   )(userId);
 }

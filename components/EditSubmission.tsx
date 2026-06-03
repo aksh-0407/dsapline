@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatISTDateTime } from "@/lib/date";
 import { Pencil, X, Save, Loader2, History, ChevronDown, ChevronUp, Tag } from "lucide-react";
+import { PREDEFINED_TAGS } from "@/lib/constants";
 
 interface EditSubmissionProps {
   submissionId: string;
@@ -26,12 +27,6 @@ interface HistoryEntry {
   oldNotes: string | null;
   changedAt: string;
 }
-
-const PREDEFINED_TAGS = [
-  "Array", "String", "Hash Table", "DP", "Math",
-  "Two Pointers", "Binary Search", "Greedy", "Stack",
-  "Graph", "Recursion", "Linked List", "Tree",
-];
 
 export function EditSubmission({
   submissionId,

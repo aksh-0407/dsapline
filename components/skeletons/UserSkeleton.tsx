@@ -28,6 +28,15 @@ export function UserSkeleton() {
         </div>
       </div>
 
+      {/* Activity Heatmap Skeleton */}
+      <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-4 h-4 rounded bg-gray-800" />
+          <div className="h-5 bg-gray-800 rounded w-32"></div>
+        </div>
+        <div className="h-28 bg-gray-800 rounded-lg w-full"></div>
+      </div>
+
       {/* Problem History Skeleton (reusing archive skeleton look) */}
       <div className="space-y-6">
         <div className="flex items-center gap-3 border-b border-gray-800 pb-4">

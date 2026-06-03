@@ -1,5 +1,3 @@
-import { IndexEntry } from "./types";
-
 export interface FilterState {
   // 1. General
   search: string; // Matches Title or Username

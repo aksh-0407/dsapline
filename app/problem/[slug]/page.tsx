@@ -13,12 +13,15 @@ export const dynamic = "force-dynamic";
 export default async function ProblemPage({ params }: Props) {
   const { slug } = await params;
 
-  const problem = await getProblemBySlug(slug);
+  // Independent reads — run concurrently to halve the DB wait.
+  const [problem, submissions] = await Promise.all([
+    getProblemBySlug(slug),
+    getSubmissionsByProblem(slug),
+  ]);
+
   if (!problem) {
     return notFound();
   }
-
-  const submissions = await getSubmissionsByProblem(slug);
 
   // Difficulty color helper
   const diffColor = (val: number) =>
@@ -171,14 +174,25 @@ export default async function ProblemPage({ params }: Props) {
                   )}
 
                   {/* Code Preview (first 8 lines) */}
-                  <div className="border-t border-gray-800 bg-black/50 p-5">
-                    <pre className="font-mono text-xs text-gray-400 leading-relaxed overflow-x-auto max-h-48 overflow-y-hidden">
-                      <code>
-                        {sub.codeSnippet.split("\n").slice(0, 8).join("\n")}
-                        {sub.codeSnippet.split("\n").length > 8 && "\n// ... (click 'View Full' to see complete code)"}
-                      </code>
-                    </pre>
-                  </div>
+                  {(() => {
+                    const lines = sub.codeSnippet.split("\n");
+                    const hiddenCount = lines.length - 8;
+                    return (
+                      <div className="border-t border-gray-800 bg-black/50">
+                        <pre className="font-mono text-xs text-gray-400 leading-relaxed overflow-x-auto p-5 max-h-48 overflow-y-hidden">
+                          <code>{lines.slice(0, 8).join("\n")}</code>
+                        </pre>
+                        {hiddenCount > 0 && (
+                          <Link
+                            href={`/submission/${sub.id}`}
+                            className="flex items-center justify-center gap-1.5 border-t border-gray-800 px-5 py-2 text-xs text-gray-500 hover:text-blue-400 hover:bg-gray-900/40 transition-colors"
+                          >
+                            {hiddenCount} more {hiddenCount === 1 ? "line" : "lines"} · View full solution
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Notes Preview */}
                   {sub.notes && (

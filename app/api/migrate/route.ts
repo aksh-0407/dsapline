@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { toISTDateString, todayIST, yesterdayIST } from "@/lib/date";
+import { titleToSlug } from "@/lib/utils";
+import { calculateStreaks } from "@/lib/streaks";
+import { recomputeProblemAvgDifficulty } from "@/lib/problem-stats";
 import fs from "fs/promises";
 import path from "path";
 
@@ -76,72 +78,9 @@ async function readLocalText(filePath: string): Promise<string | null> {
   }
 }
 
-/**
- * Calculate streaks from a sorted list of YYYY-MM-DD date strings.
- *
- * RULES:
- *  - currentStreak: consecutive days counting back from today/yesterday.
- *    If the most recent date is not today or yesterday, currentStreak = 0.
- *  - maxStreak: longest consecutive chain ever.
- *  - Duplicates are collapsed (same day = 1).
- */
-function calculateStreaks(dates: string[]): { currentStreak: number; maxStreak: number } {
-  if (dates.length === 0) return { currentStreak: 0, maxStreak: 0 };
-
-  // Unique, sorted ascending
-  const uniqueDates = Array.from(new Set(dates)).sort();
-
-  // --- Max Streak ---
-  let maxStreak = 1;
-  let runStreak = 1;
-  for (let i = 1; i < uniqueDates.length; i++) {
-    const prev = new Date(uniqueDates[i - 1] + "T12:00:00Z");
-    const curr = new Date(uniqueDates[i] + "T12:00:00Z");
-    const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000);
-
-    if (diffDays === 1) {
-      runStreak++;
-      if (runStreak > maxStreak) maxStreak = runStreak;
-    } else {
-      runStreak = 1;
-    }
-  }
-
-  // --- Current Streak (backward from today/yesterday) ---
-  let currentStreak = 0;
-  const today = todayIST();
-  const yesterday = yesterdayIST();
-
-  const sortedDesc = [...uniqueDates].sort((a, b) => b.localeCompare(a));
-  const mostRecent = sortedDesc[0];
-
-  if (mostRecent === today || mostRecent === yesterday) {
-    const checkDate = new Date(mostRecent + "T12:00:00Z");
-    for (const dateStr of sortedDesc) {
-      const expected = toISTDateString(checkDate);
-      if (dateStr === expected) {
-        currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-  }
-
-  return { currentStreak, maxStreak };
-}
-
-/**
- * Compute Problem.difficultyValue as the average of all non-null ratings
- * for a given problemSlug. Returns null if no rated submissions.
- */
-async function computeProblemAvgDifficulty(problemSlug: string): Promise<number | null> {
-  const agg = await prisma.submission.aggregate({
-    where: { problemSlug, difficultyRating: { not: null } },
-    _avg: { difficultyRating: true },
-  });
-  return agg._avg.difficultyRating;
-}
+// Streak math (calculateStreaks) and community-average difficulty
+// (recomputeProblemAvgDifficulty) are imported from the shared modules so the
+// migration produces exactly the same values the live write paths do.
 
 // ======================================================================
 // MAIN MIGRATION ROUTE
@@ -164,10 +103,23 @@ export async function POST(req: Request) {
     }
 
     // MIGRATE_SECRET guard — prevents anyone with the hardcoded confirm string
-    // from wiping the database in production. Set this env var in .env.local and
-    // in the Vercel dashboard before running the migration.
+    // from wiping the database. FAIL-CLOSED in production: the secret MUST be
+    // configured and matched. In local dev the secret is optional.
     const migrateSecret = process.env.MIGRATE_SECRET;
-    if (migrateSecret && body.secret !== migrateSecret) {
+    if (process.env.NODE_ENV === "production") {
+      if (!migrateSecret) {
+        return NextResponse.json(
+          { error: "MIGRATE_SECRET is not configured. Refusing to run in production." },
+          { status: 500 }
+        );
+      }
+      if (body.secret !== migrateSecret) {
+        return NextResponse.json(
+          { error: "Invalid migration secret. Check MIGRATE_SECRET env var." },
+          { status: 403 }
+        );
+      }
+    } else if (migrateSecret && body.secret !== migrateSecret) {
       return NextResponse.json(
         { error: "Invalid migration secret. Check MIGRATE_SECRET env var." },
         { status: 403 }
@@ -177,7 +129,22 @@ export async function POST(req: Request) {
     console.log(`\n=== MIGRATION triggered by ${userId} ===\n`);
 
     // ==================================================================
-    // STEP 0: CLEAR ALL TABLES (cascading order)
+    // STEP 0: LOAD & VALIDATE SOURCE DATA *BEFORE* ANY DESTRUCTIVE OP.
+    //   Safety property: if the source files are missing we abort here and the
+    //   live database is left completely untouched. (Previously the tables were
+    //   cleared first, so a missing data/ folder caused a full wipe + 500.)
+    // ==================================================================
+    const indexData = await readLocalJson<IndexEntry[]>(path.join(DATA_DIR, "index.json"));
+    if (!indexData || !Array.isArray(indexData) || indexData.length === 0) {
+      return NextResponse.json(
+        { error: "No index data found at data/index.json. Database left untouched." },
+        { status: 404 }
+      );
+    }
+    console.log(`Loaded ${indexData.length} entries from index.json`);
+
+    // ==================================================================
+    // STEP 1: CLEAR ALL TABLES (only now that source data is confirmed present)
     // ==================================================================
     console.log("Clearing existing data...");
     await prisma.submissionHistory.deleteMany();
@@ -187,15 +154,6 @@ export async function POST(req: Request) {
     await prisma.problem.deleteMany();
     await prisma.user.deleteMany();
     console.log("  ✓ All tables cleared.\n");
-
-    // ==================================================================
-    // STEP 1: LOAD INDEX (Single source of truth for "what was solved")
-    // ==================================================================
-    const indexData = await readLocalJson<IndexEntry[]>(path.join(DATA_DIR, "index.json"));
-    if (!indexData || !Array.isArray(indexData) || indexData.length === 0) {
-      return NextResponse.json({ error: "No index data found at data/index.json" }, { status: 404 });
-    }
-    console.log(`Loaded ${indexData.length} entries from index.json`);
 
     const stats = {
       users: 0,
@@ -219,10 +177,7 @@ export async function POST(req: Request) {
     > = {};
 
     for (const entry of indexData) {
-      const slug = entry.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const slug = titleToSlug(entry.title);
 
       if (!userMap[entry.userId]) {
         userMap[entry.userId] = {
@@ -281,10 +236,7 @@ export async function POST(req: Request) {
     const problemCache = new Map<string, boolean>();
 
     for (const entry of indexData) {
-      const slug = entry.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const slug = titleToSlug(entry.title);
 
       if (problemCache.has(slug)) continue;
       problemCache.set(slug, true);
@@ -322,10 +274,7 @@ export async function POST(req: Request) {
     const solvedProblemCache = new Map<string, string>(); // `${userId}:${slug}` → sp.id
 
     for (const entry of indexData) {
-      const slug = entry.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const slug = titleToSlug(entry.title);
 
       const dateObj = new Date(entry.timestamp || entry.date);
       const year = dateObj.getUTCFullYear();
@@ -531,14 +480,10 @@ export async function POST(req: Request) {
     // ==================================================================
     let problemsUpdated = 0;
     for (const slug of problemCache.keys()) {
-      const avg = await computeProblemAvgDifficulty(slug);
-      if (avg !== null) {
-        await prisma.problem.update({
-          where: { slug },
-          data: { difficultyValue: avg },
-        });
-        problemsUpdated++;
-      }
+      // Shared helper: AVG over SolvedProblem ratings (writes null when unrated),
+      // identical to the live write paths.
+      await recomputeProblemAvgDifficulty(prisma, slug);
+      problemsUpdated++;
     }
     console.log(`  ✓ Recomputed average difficulty for ${problemsUpdated} problems.\n`);
 

@@ -97,53 +97,58 @@ async function fetchCodeforcesData(contestId: string, index: string): Promise<Pr
 
 /**
  * MAIN ENRICHMENT FUNCTION
- * Detects platform and calls the right fetcher
+ * Detects platform and calls the right fetcher.
+ *
+ * Parsing is done on the URL's pathname segments (via the WHATWG URL parser),
+ * so query strings (?tab=...), fragments (#...), and trailing slashes can never
+ * corrupt the extracted slug / contest id / problem index.
  */
 export async function enrichProblemData(url: string): Promise<ProblemMetadata | null> {
-  const lowerUrl = url.toLowerCase();
-
-  // A. LEETCODE DETECTION
-  if (lowerUrl.includes("leetcode.com/problems/")) {
-    try {
-      // URL format: .../problems/two-sum/description/...
-      const parts = url.split("/problems/");
-      if (parts.length > 1) {
-        // Extract "two-sum" from the path
-        const slug = parts[1].split("/")[0];
-        return await fetchLeetCodeData(slug);
-      }
-    } catch {
-      return null;
-    }
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
   }
 
-  // B. CODEFORCES DETECTION
-  if (lowerUrl.includes("codeforces.com")) {
-    try {
-      // Supports two formats:
-      // 1. /contest/4/problem/A
-      // 2. /problemset/problem/4/A
-      let contestId = "";
-      let index = "";
+  const host = parsed.hostname.toLowerCase();
+  const segments = parsed.pathname.split("/").filter(Boolean);
 
-      if (lowerUrl.includes("/contest/")) {
-        const parts = url.split("/contest/");
-        const subParts = parts[1].split("/problem/");
-        contestId = subParts[0];
-        index = subParts[1].replace("/", ""); // Remove trailing slash
-      } else if (lowerUrl.includes("/problemset/problem/")) {
-        const parts = url.split("/problemset/problem/");
-        const subParts = parts[1].split("/");
-        contestId = subParts[0];
-        index = subParts[1];
-      }
+  // A. LEETCODE — .../problems/<slug>/...
+  if (host.includes("leetcode.com")) {
+    const idx = segments.indexOf("problems");
+    const slug = idx !== -1 ? segments[idx + 1] : undefined;
+    if (slug) return await fetchLeetCodeData(slug.toLowerCase());
+    return null;
+  }
 
-      if (contestId && index) {
-        return await fetchCodeforcesData(contestId, index);
+  // B. CODEFORCES — /contest/<id>/problem/<index>, /gym/<id>/problem/<index>,
+  //    or /problemset/problem/<id>/<index>
+  if (host.includes("codeforces.com")) {
+    let contestId = "";
+    let index = "";
+
+    const baseIdx = segments.indexOf("contest") !== -1
+      ? segments.indexOf("contest")
+      : segments.indexOf("gym");
+
+    if (baseIdx !== -1 && segments[baseIdx + 1]) {
+      contestId = segments[baseIdx + 1];
+      const probIdx = segments.indexOf("problem", baseIdx);
+      if (probIdx !== -1 && segments[probIdx + 1]) index = segments[probIdx + 1];
+    } else {
+      const psIdx = segments.indexOf("problemset");
+      if (psIdx !== -1 && segments[psIdx + 1] === "problem" && segments[psIdx + 2] && segments[psIdx + 3]) {
+        contestId = segments[psIdx + 2];
+        index = segments[psIdx + 3];
       }
-    } catch {
-      return null;
     }
+
+    if (contestId && index) {
+      // Codeforces problem indexes are uppercase (A, B, C1, ...).
+      return await fetchCodeforcesData(contestId, index.toUpperCase());
+    }
+    return null;
   }
 
   return null;

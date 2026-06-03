@@ -7,12 +7,7 @@ import {
   ChevronDown, ChevronUp, Check, CheckCircle2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-const PREDEFINED_TAGS = [
-  "Array", "String", "Hash Table", "DP", "Math",
-  "Two Pointers", "Binary Search", "Greedy", "Stack",
-  "Graph", "Recursion", "Linked List", "Tree",
-];
+import { PREDEFINED_TAGS, CODE_LANGUAGES } from "@/lib/constants";
 
 const MAX_ALT_SOLUTIONS = 10;
 
@@ -57,14 +52,35 @@ export function SubmitForm() {
   const [difficulty, setDifficulty] = useState(5.0);
   const [isUnrated, setIsUnrated] = useState(false);
 
-  // TAG STATE: allKnownTags = predefined + custom + auto-filled
+  // Language for the main (and pasted alternate) solutions. Uploaded files keep
+  // their own extension server-side.
+  const [language, setLanguage] = useState("cpp");
+
+  // TAG STATE: allKnownTags = predefined + custom + auto-filled + fetched from DB
   // Selected tags are shown as active (not hidden) in the lower pool.
-  const [allKnownTags, setAllKnownTags] = useState<string[]>(PREDEFINED_TAGS);
+  const [allKnownTags, setAllKnownTags] = useState<string[]>([...PREDEFINED_TAGS]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
 
   // Solution title (for re-submissions — labels the new solution approach)
   const [solutionTitle, setSolutionTitle] = useState("");
+
+  // On mount: fetch all platform-wide tags from the DB so community-added
+  // tags are visible in the picker without a redeploy.
+  useEffect(() => {
+    fetch("/api/tags")
+      .then((r) => r.json())
+      .then(({ success, tags }: { success: boolean; tags: string[] }) => {
+        if (success && Array.isArray(tags)) {
+          setAllKnownTags((prev) => {
+            const merged = [...prev];
+            tags.forEach((t) => { if (!merged.includes(t)) merged.push(t); });
+            return merged;
+          });
+        }
+      })
+      .catch((e) => console.warn("Failed to fetch global tags:", e));
+  }, []);
 
   // Alternate solutions — dynamic list, max MAX_ALT_SOLUTIONS
   const [altSolutions, setAltSolutions] = useState<AltSolution[]>([]);
@@ -468,21 +484,35 @@ export function SubmitForm() {
               {isResubmission ? "New Solution Code" : "Solution Code"}{" "}
               <span className="text-red-500">*</span>
             </label>
-            <div className="flex bg-gray-800 rounded-lg p-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab("paste")}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition ${activeTab === "paste" ? "bg-gray-700 text-white shadow" : "text-gray-400"}`}
+            <div className="flex items-center gap-2">
+              {/* Language selector — applies to pasted code (uploads keep their extension) */}
+              <select
+                name="language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="bg-gray-800 text-gray-300 text-xs rounded-md px-2 py-1.5 border border-gray-700 focus:ring-1 focus:ring-blue-600 outline-none cursor-pointer"
+                title="Language for this solution"
               >
-                Paste
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("file")}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition ${activeTab === "file" ? "bg-gray-700 text-white shadow" : "text-gray-400"}`}
-              >
-                Upload
-              </button>
+                {CODE_LANGUAGES.map((lang) => (
+                  <option key={lang} value={lang}>{lang}</option>
+                ))}
+              </select>
+              <div className="flex bg-gray-800 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("paste")}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition ${activeTab === "paste" ? "bg-gray-700 text-white shadow" : "text-gray-400"}`}
+                >
+                  Paste
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("file")}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition ${activeTab === "file" ? "bg-gray-700 text-white shadow" : "text-gray-400"}`}
+                >
+                  Upload
+                </button>
+              </div>
             </div>
           </div>
 

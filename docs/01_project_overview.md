@@ -87,7 +87,7 @@ This documentation covers the **V2.0 SQL-backed architecture** — the complete 
 | **Usage** | Runtime type validation for API payloads and data shapes |
 
 **Why Zod?**
-- Provides runtime schema validation that mirrors TypeScript types. The `IndexEntrySchema` and `SubmissionSchema` in `lib/types.ts` ensure that data flowing through the application matches the expected shape, catching malformed data before it reaches the database.
+- The `IndexEntrySchema` and `ArchiveEntrySchema` in `lib/types.ts` are declared with Zod and the application's read-model TypeScript types are inferred from them (`z.infer`), keeping one definition for both compile-time types and any future runtime parsing. Server-side input validation on the API routes (URL format, code length, tag count, difficulty range, ownership) is currently performed with explicit guards.
 
 ---
 
@@ -145,31 +145,36 @@ This documentation covers the **V2.0 SQL-backed architecture** — the complete 
 
 ### 3.1 Request Flow (Example: Submitting a Solution)
 
-1. **Client** → User fills `SubmitForm.tsx` and hits "Confirm Submission"
-2. **Network** → `POST /api/submit` with `FormData` (URL, code, tags, difficulty)
-3. **Auth Check** → `auth()` extracts `userId` from Clerk JWT cookie
-4. **Enrichment** → `enrichProblemData(url)` calls LeetCode GraphQL / Codeforces REST API (guarded by 5000ms AbortSignal)
-5. **User Upsert** → `prisma.user.upsert()` ensures user exists in SQL
-6. **Problem Upsert** → `prisma.problem.upsert()` creates or finds the problem
-7. **SolvedProblem Check** → Checks if `SolvedProblem` exists for `(userId, problemSlug)`
-8. **SolvedProblem Upsert** → Creates canonical solve record or updates existing one
-9. **Submission Insert** → `prisma.submission.create()` stores the code linked to the `SolvedProblem`
-10. **Stats Update** → `prisma.user.update({ totalSolved: { increment: 1 } })` (only if first solve)
-11. **Response** → `{ success: true, id: submissionId }` → Client redirects to Dashboard
+1. **Client** → User fills `SubmitForm.tsx` (URL, language, code, tags, difficulty) and hits "Confirm Submission"
+2. **Network** → `POST /api/submit` with `FormData`
+3. **Auth + Validation** → `auth()` extracts `userId`; URL format, code length, and tags are validated/sanitised
+4. **Enrichment** → `enrichProblemData(url)` calls LeetCode GraphQL / Codeforces REST API (5000ms AbortSignal) — *outside* the DB transaction
+
+   Steps 5–10 execute inside a single `prisma.$transaction` (atomic):
+5. **User Upsert** → `tx.user.upsert()` ensures user exists in SQL
+6. **Problem Upsert** → `tx.problem.upsert()` creates or finds the problem
+7. **SolvedProblem branch** → finds `SolvedProblem` for `(userId, problemSlug)`; creates it (first solve) or updates it + bumps `lastAttemptedAt` (re-submit)
+8. **Stats Update** → `tx.user.update({ totalSolved: { increment: 1 } })` only on a first solve
+9. **Submission Insert** → `tx.submission.create()` for the main solution + each alternate, linked to the `SolvedProblem`
+10. **Recompute** → community `AVG` difficulty (`recomputeProblemAvgDifficulty`) + the user's streaks (`recomputeUserStreaks`)
+11. **Cache + Response** → `revalidateAfterWrite(userId)` purges dashboard/archive/leaderboard tags; returns `{ success: true, id }` → Client redirects to Dashboard
 
 ---
 
 ## 4. Application Pages & Routes
 
+Since v2.0, **every page except the landing page requires sign-in** — the Clerk
+middleware (`proxy.ts`) redirects signed-out visitors to `/`.
+
 | Route | Type | Auth Required | Data Source |
 |-------|------|--------------|-------------|
-| `/` | Dashboard / Landing | Yes (Dashboard) / No (Landing) | `getDashboardData()` → SQL |
+| `/` | Dashboard / Landing | Dashboard: yes · Landing: public | `getDashboardData()` → SQL |
 | `/submit` | Submission Form | Yes | Client-side form → `POST /api/submit` |
-| `/archive` | Global Archive | No | `getGlobalArchive()` → SQL |
-| `/leaderboard` | Rankings | No | `getLeaderboard()` → SQL |
-| `/submission/[id]` | Submission Detail | No (view) / Yes (edit) | `prisma.submission.findUnique()` |
-| `/problem/[slug]` | Problem View | No | `getSubmissionsByProblem()` → SQL |
-| `/user/[userId]` | User Profile | No | `getDashboardData()` → SQL |
+| `/archive` | Global Archive | Yes | `getGlobalArchive()` → SQL |
+| `/leaderboard` | Rankings | Yes | `getLeaderboard()` → SQL |
+| `/submission/[id]` | Submission Detail | Yes (edit restricted to owner) | `prisma.submission.findUnique()` |
+| `/problem/[slug]` | Problem View | Yes | `getSubmissionsByProblem()` → SQL |
+| `/user/[userId]` | User Profile | Yes | `getDashboardData()` → SQL |
 | `/api/submit` | Create Submission | Yes | `POST` → INSERT |
 | `/api/submission/[id]` | Get/Edit/Delete Submission | No (GET) / Yes (PUT/DELETE) | SELECT / UPDATE / DELETE |
 | `/api/submission/[id]/history` | Edit History | No | SELECT |

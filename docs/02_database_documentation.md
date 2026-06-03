@@ -268,7 +268,7 @@ Uses the compound index `@@index([userId, lastAttemptedAt])`.
 
 | Property | How It's Implemented |
 |----------|---------------------|
-| **Atomicity** | Prisma wraps multi-step inserts in logical transactions. |
-| **Consistency** | Foreign key constraints prevent orphans. Enums restrict statuses. |
+| **Atomicity** | The submit, edit, and delete write paths run inside `prisma.$transaction` (interactive transactions), so the multi-row sequence (SolvedProblem ↔ Submission ↔ denormalised counters) commits all-or-nothing. External API enrichment runs *before* the transaction so a slow third-party call never holds a DB transaction open. |
+| **Consistency** | Foreign key constraints prevent orphans; enums restrict statuses; `User.totalSolved` and `User.currentStreak`/`maxStreak` are recomputed within the same transaction as the write that affects them. |
 | **Isolation** | PostgreSQL default `READ COMMITTED`. |
 | **Durability** | Neon.tech WAL (Write-Ahead Logging). |

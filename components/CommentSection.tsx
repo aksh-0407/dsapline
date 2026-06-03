@@ -7,12 +7,7 @@ import {
   MessageSquare, Send, Loader2, Pencil, X, Check, Trash2,
   Code2, ChevronDown, ChevronUp, Copy
 } from "lucide-react";
-
-// Languages for the code block language selector
-const CODE_LANGUAGES = [
-  "cpp", "python", "java", "javascript", "typescript",
-  "c", "go", "rust", "kotlin", "swift", "sql", "other",
-];
+import { CODE_LANGUAGES } from "@/lib/constants";
 
 interface Comment {
   id: string;

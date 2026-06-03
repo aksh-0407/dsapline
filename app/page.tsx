@@ -1,65 +1,81 @@
 import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
+import { SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import { getDashboardData } from "@/lib/analytics";
-import prisma from "@/lib/prisma";
 import { StatsGrid } from "@/components/StatsGrid";
-import { ArrowRight, Code2, TrendingUp, Shield, BarChart3, Users } from "lucide-react";
+import { ArrowRight, Code2, TrendingUp, BarChart3, Users, Archive } from "lucide-react";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 
 export default async function Home() {
   const { userId } = await auth();
-  
+
   // --- 1. LANDING PAGE (Logged Out) ---
   if (!userId) {
     return (
       <main className="min-h-screen bg-gray-950 text-white selection:bg-blue-500/30 flex flex-col justify-center">
-        
-        {/* Note: Navbar is removed from here as it is handled by layout.tsx */}
 
         {/* Hero Section */}
-        <section className="relative pt-20 pb-20 px-6 overflow-hidden">
+        <section className="relative pt-16 pb-20 px-6 overflow-hidden">
           {/* Background Glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full opacity-50 pointer-events-none" />
-          
+
           <div className="max-w-5xl mx-auto text-center relative z-10 space-y-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/30 border border-blue-800 text-blue-400 text-xs font-medium mb-4">
+            <Image
+              src="/logo_nobg_small.png"
+              alt="DSApline"
+              width={200}
+              height={109}
+              priority
+              className="mx-auto h-auto w-[160px] md:w-[200px]"
+            />
+
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/30 border border-blue-800 text-blue-400 text-xs font-medium">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
               </span>
-              v1.0 is now live
+              v2.0 is now live
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
-              Master DSA through <br className="hidden md:block" />
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
+              Track your DSA grind. <br className="hidden md:block" />
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Discipline, Accountability
-              <br />
-              and Collaborative Learning.
+                Stay consistent. Climb together.
               </span>
             </h1>
-            
+
             <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Stop solving in a vacuum. Track your LeetCode & Codeforces journey, 
-              visualize your consistency, and build a legacy of your code.
+              Log every LeetCode &amp; Codeforces problem you solve, keep your streak
+              alive, and see how you stack up against everyone else.
             </p>
+
+            <div className="flex items-center justify-center pt-2">
+              <SignInButton mode="modal">
+                <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-lg shadow-blue-900/30 hover:scale-[1.02]">
+                  Get Started <ArrowRight size={18} />
+                </button>
+              </SignInButton>
+            </div>
           </div>
         </section>
 
         {/* Features Grid */}
         <section className="max-w-6xl mx-auto px-6 pb-24">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* 1. Deep Analytics */}
+
+            {/* 1. Code Archive */}
             <div className="bg-gray-900/50 border border-gray-800 p-8 rounded-2xl hover:border-gray-700 transition-colors">
-              <div className="w-12 h-12 bg-purple-900/30 rounded-lg flex items-center justify-center mb-4 text-purple-400">
-                <BarChart3 size={24} />
+              <div className="w-12 h-12 bg-emerald-900/30 rounded-lg flex items-center justify-center mb-4 text-emerald-400">
+                <Archive size={24} />
               </div>
-              <h3 className="text-xl font-bold mb-2">Deep Analytics</h3>
+              <h3 className="text-xl font-bold mb-2">Code Archive</h3>
               <p className="text-gray-400">
-                Visualize your difficulty distribution, track your streaks, and analyze your average rating over time.
+                Never lose a solution again. Keep track of every problem you&apos;ve
+                solved and all their solutions, and search them quickly by tag,
+                difficulty, and more.
               </p>
             </div>
 
@@ -70,18 +86,20 @@ export default async function Home() {
               </div>
               <h3 className="text-xl font-bold mb-2">Collaborative Learning</h3>
               <p className="text-gray-400">
-                Learn from the community. Compare solutions, share insights, and grow together through shared progress.
+                Learn from the community. Compare solutions, share insights, and grow
+                together through shared progress.
               </p>
             </div>
 
-            {/* 3. Code Archive */}
+            {/* 3. Track Your Progress */}
             <div className="bg-gray-900/50 border border-gray-800 p-8 rounded-2xl hover:border-gray-700 transition-colors">
-              <div className="w-12 h-12 bg-emerald-900/30 rounded-lg flex items-center justify-center mb-4 text-emerald-400">
-                <Shield size={24} />
+              <div className="w-12 h-12 bg-purple-900/30 rounded-lg flex items-center justify-center mb-4 text-purple-400">
+                <BarChart3 size={24} />
               </div>
-              <h3 className="text-xl font-bold mb-2">Code Archive</h3>
+              <h3 className="text-xl font-bold mb-2">Track Your Progress</h3>
               <p className="text-gray-400">
-                Never lose a solution again. Search your past submissions by tag, difficulty, or platform in milliseconds.
+                Keep track of your consistency, streaks, active days, and the
+                difficulty of the problems you solve over time.
               </p>
             </div>
 
@@ -93,18 +111,15 @@ export default async function Home() {
   }
 
   // --- 2. DASHBOARD (Logged In) ---
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
-  const firstName = user?.fullName?.split(" ")[0] ?? "there";
-
   return (
     <main className="min-h-screen bg-gray-950 text-white p-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        
-        {/* Header (Instantly Loaded) */}
+
+        {/* Header (renders instantly — no DB call on the critical path) */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold">Dashboard</h2>
-            <p className="text-gray-400">Welcome back, {firstName}.</p>
+            <p className="text-gray-400">Track your consistency and keep your streak alive.</p>
           </div>
           <Link href="/submit">
             <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition shadow-lg shadow-blue-900/20 hover:scale-[1.02]">
@@ -127,21 +142,25 @@ export default async function Home() {
 // Extract data fetching to a separate Server Component
 async function DashboardFeed({ userId }: { userId: string }) {
   const stats = await getDashboardData(userId);
+  const firstName = stats.username?.split(" ")[0] ?? "there";
 
   return (
     <div className="space-y-8">
 
+      {/* Personalised greeting (lives in the suspended boundary) */}
+      <p className="text-gray-300 text-lg">
+        Welcome back, <span className="font-semibold text-white">{firstName}</span>.
+      </p>
+
       {/* Stats Row */}
       <StatsGrid stats={stats} />
 
-      {/* Heatmap Placeholder */}
+      {/* Heatmap */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
          <div className="flex items-center gap-2 mb-4">
            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
            <h3 className="font-bold text-gray-300">Activity Graph</h3>
          </div>
-         
-         {/* Render the Heatmap passing the data from stats */}
          <ActivityHeatmap activityMap={stats.activityMap} />
       </div>
 
@@ -154,12 +173,13 @@ async function DashboardFeed({ userId }: { userId: string }) {
           <div className="space-y-3">
             {stats.recentActivity.map((sub) => (
               <div key={sub.id} className="bg-gray-900 border border-gray-800 p-4 rounded-lg flex items-center justify-between hover:border-gray-700 transition group">
-                
+
                 {/* LEFT: Info & Badges */}
                 <div className="flex items-center gap-4">
                   <span className={`px-2 py-1 rounded text-xs font-mono font-bold
-                    ${sub.difficulty >= 7 ? 'bg-red-900/30 text-red-400' : 
-                      sub.difficulty >= 4 ? 'bg-yellow-900/30 text-yellow-400' : 
+                    ${sub.difficulty === null ? 'bg-gray-800 text-gray-500' :
+                      sub.difficulty >= 7 ? 'bg-red-900/30 text-red-400' :
+                      sub.difficulty >= 4 ? 'bg-yellow-900/30 text-yellow-400' :
                       'bg-emerald-900/30 text-emerald-400'}`}>
                     {sub.difficulty !== null ? sub.difficulty.toFixed(1) : "—"}
                   </span>
@@ -186,7 +206,7 @@ async function DashboardFeed({ userId }: { userId: string }) {
                     ))}
                   </div>
 
-                  <Link 
+                  <Link
                     href={`/submission/${sub.id}`}
                     className="text-gray-500 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-800"
                     title="View Code"
